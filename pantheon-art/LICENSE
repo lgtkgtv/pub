@@ -1,0 +1,54 @@
+﻿MIT License
+
+Copyright (c) 2026 Pantheon Art History Project Maintainers
+
+Permission is hereby granted, free of charge, to any person obtaining a copy
+of this software and associated documentation files (the "Software"), to deal
+in the Software without restriction, including without limitation the rights
+to use, copy, modify, merge, publish, distribute, sublicense, and/or sell
+copies of the Software, and to permit persons to whom the Software is
+furnished to do so, subject to the following conditions:
+
+The above copyright notice and this permission notice shall be included in all
+copies or substantial portions of the Software.
+
+---
+
+### Non-Commercial Personal Educational Purpose & Intent
+
+This repository, its tooling, and the accompanying web exhibition were created
+strictly for **personal education, art history appreciation, and non-commercial
+academic research**.
+
+1. **No Commercial Interest**: There is zero commercial purpose, financial
+   monetization, advertising, print sales, or business interest associated
+   with this project.
+2. **Public Domain Underpinnings**: All visual artworks curated or cataloged
+   in this project were created between 1470 and 1918 by historic masters
+   deceased prior to 1945. Under international copyright conventions (including
+   the Berne Convention and United States Copyright Act), these masterworks
+   reside irrevocably in the worldwide public domain.
+3. **Faithful Digitization**: Pursuant to established judicial precedent
+   (*The Bridgeman Art Library, Ltd. v. Corel Corp.*, 36 F. Supp. 2d 191 (S.D.N.Y. 1999))
+   and Article 14 of European Union Directive (EU) 2019/790 on Copyright in the
+   Digital Single Market, faithful two-dimensional digital photographic
+   reproductions of expired visual artworks lack independent originality and
+   are not subject to copyright or related rights.
+4. **Third-Party Content & Takedown Protocol**: The Software references external
+   digital repositories for cultural preservation and study. If you represent
+   any institution, copyright holder, or rights administrator with questions,
+   concerns, or requests regarding attribution or catalog metadata, please
+   refer to `docs/TAKEDOWN_POLICY.md` or contact `lgtkgtv@gmail.com`. Any requested
+   change or removal will be executed promptly and without dispute.
+
+---
+
+### Disclaimer of Warranty & Limitation of Liability
+
+THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR
+IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,
+FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE
+AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER
+LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,
+OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
+SOFTWARE.
