@@ -1,0 +1,645 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=5.0">
+    <title>L'Impressionnisme Vivant · 4K Digital Art Gallery & Video Explorer</title>
+    
+    <!-- Primary Meta Tags & SEO -->
+    <meta name="title" content="L'Impressionnisme Vivant · 4K Digital Art Gallery &amp; Video Explorer">
+    <meta name="description" content="Step inside the living canvases of Claude Monet and the Impressionist masters. 240 curated masterworks, 1,893 high-resolution wallpapers, ambient classical music, and interactive channel retrospectives.">
+    <meta name="keywords" content="Claude Monet, Impressionism, 4K Art Gallery, Impressionist Paintings, Classical Music, Art Museum, Wallpapers">
+    <meta name="author" content="sachin g">
+
+    <!-- Open Graph / Facebook -->
+    <meta property="og:type" content="website">
+    <meta property="og:url" content="https://lgtkgtv.github.io/pub/monet-gallery/">
+    <meta property="og:title" content="L'Impressionnisme Vivant · 4K Digital Art Gallery">
+    <meta property="og:description" content="Explore 240 curated Impressionist masterworks, 1,893 high-resolution wallpapers, and ambient classical music celebrating Claude Monet.">
+    <meta property="og:image" content="https://pub-145db29b2e354209938bb7248991c9dc.r2.dev/wallpapers/tJjqAH1h8fk/snapshot_1.jpg">
+    <meta property="og:image:alt" content="Claude Monet Impressionist Masterwork">
+    <meta property="og:image:width" content="3840">
+    <meta property="og:image:height" content="2160">
+
+    <!-- Twitter Card -->
+    <meta name="twitter:card" content="summary_large_image">
+    <meta name="twitter:url" content="https://lgtkgtv.github.io/pub/monet-gallery/">
+    <meta name="twitter:title" content="L'Impressionnisme Vivant · 4K Digital Art Gallery">
+    <meta name="twitter:description" content="Explore 240 curated Impressionist masterworks, 1,893 high-resolution wallpapers, and ambient classical music celebrating Claude Monet.">
+    <meta name="twitter:image" content="https://pub-145db29b2e354209938bb7248991c9dc.r2.dev/wallpapers/tJjqAH1h8fk/snapshot_1.jpg">
+
+    <!-- PWA & Mobile Web App Meta -->
+    <link rel="manifest" href="./manifest.json">
+    <meta name="theme-color" content="#0b0f19">
+    <meta name="apple-mobile-web-app-capable" content="yes">
+    <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+    <meta name="apple-mobile-web-app-title" content="Monet Gallery">
+    <link rel="apple-touch-icon" href="./icons/icon-192.png">
+    <link rel="icon" type="image/svg+xml" href="./icons/icon.svg">
+    <link rel="icon" type="image/png" sizes="192x192" href="./icons/icon-192.png">
+
+    <!-- Google Fonts -->
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Parisienne&family=Cormorant+Garamond:ital,wght@1,500&family=Playfair+Display:ital,wght@0,500;0,600;0,700;1,400&family=Source+Serif+4:ital,opsz,wght@0,8..60,400;0,8..60,500;0,8..60,600;1,8..60,400&family=Plus+Jakarta+Sans:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+    
+    <link rel="stylesheet" href="./styles.css?v=24">
+</head>
+<body>
+
+    <!-- Hero Header -->
+    <header class="hero">
+        <!-- Discrete Top-Right Utility Strip (Ambient Music & Theme Toggle) -->
+        <div class="hero-top-toolbar">
+            <!-- Curator Mode toolbar: only shown locally via ?curator=1, never for regular visitors -->
+            <div class="curator-toolbar" id="curatorToolbar" style="display: none;">
+                <span class="curator-toolbar-label" title="Local-only curation draft — nothing here is published until you export and commit it">
+                    🔧 Curator Mode
+                </span>
+                <span class="curator-draft-count" id="curatorDraftCount" title="Unsaved marks in this browser">0 marked</span>
+                <button class="curator-toolbar-btn" onclick="exportCurationOverrides()" title="Download curation_overrides.json">
+                    ⬇️ Export
+                </button>
+                <button class="curator-toolbar-btn curator-toolbar-btn-subtle" onclick="clearCurationDraft()" title="Clear all local marks">
+                    Clear
+                </button>
+                <button class="curator-toolbar-btn curator-toolbar-btn-subtle" onclick="exitCuratorMode()" title="Exit Curator Mode">
+                    Exit
+                </button>
+            </div>
+
+            <div class="global-audio-pill" id="globalAudioPill" title="Ambient Classical Music (Debussy, Satie &amp; Ravel)">
+                <button id="globalAudioPlayBtn" class="global-audio-play-btn" onclick="toggleGlobalAudio()" aria-label="Play or pause ambient classical music" title="Play / Pause Ambient Classical Music">
+                    <span id="globalAudioPlayIcon">🎵</span> <span class="global-audio-label">Ambient Music</span>
+                </button>
+                <span id="globalAudioTrackTitle" class="global-audio-track" title="Current track">Debussy: Clair de Lune</span>
+                <button class="global-audio-next-btn" onclick="nextAmbientTrack(true)" aria-label="Next ambient classical track" title="Next Track (N)">⏭️</button>
+            </div>
+
+            <button id="themeToggleBtn" class="theme-toggle-btn" onclick="toggleTheme()" aria-label="Toggle dark gallery and light parchment themes" title="Toggle Theme">
+                <span id="themeToggleIcon">☀️</span> <span id="themeToggleLabel">Light Mode</span>
+            </button>
+        </div>
+
+        <div class="hero-container">
+            <h1 class="hero-title">L'Impressionnisme Vivant</h1>
+            <p class="hero-tagline">
+                Step inside the living canvases of Claude Monet and the Impressionist masters.
+            </p>
+
+            <!-- Immediate-gratification entry points: skip the filters, go straight into a full-screen highlight reel -->
+            <div class="hero-spotlight-row" id="heroSpotlightRow">
+                <span class="hero-spotlight-label">Begin your visit:</span>
+                <button type="button" class="hero-spotlight-btn hero-spotlight-monet" onclick="launchArtistSpotlight('Claude Monet', this)" title="Full-screen highlight reel of Monet's finest works, set to ambient music">
+                    🌊 Monet's Water Lilies &amp; Gardens
+                </button>
+                <button type="button" class="hero-spotlight-btn hero-spotlight-vangogh" onclick="launchArtistSpotlight('Vincent van Gogh', this)" title="Full-screen highlight reel of Van Gogh's finest works, set to ambient music">
+                    🌻 Van Gogh's Skies &amp; Fields
+                </button>
+                <button type="button" class="hero-spotlight-btn hero-spotlight-surprise" onclick="launchArtistSpotlight(null, this)" title="A full-screen highlight reel shuffled across all 18 masters in the collection">
+                    🎲 Surprise Me
+                </button>
+            </div>
+
+            <!-- 3 Section Navigation Tabs -->
+            <nav class="hero-nav-tabs" role="tablist" aria-label="Gallery Sections">
+                <button id="tabBtnVideos" class="hero-tab-btn active" role="tab" aria-selected="true" onclick="switchMainTab('videos')">
+                    🎨 The Impressionist Video Explorer
+                </button>
+                <button id="tabBtnWallpapers" class="hero-tab-btn" role="tab" aria-selected="false" onclick="switchMainTab('wallpapers')">
+                    🖼️ The Impressionist Wallpaper Gallery
+                </button>
+                <button id="tabBtnChannels" class="hero-tab-btn" role="tab" aria-selected="false" onclick="switchMainTab('channels')">
+                    🏛️ The Channel Guides &amp; Aesthetic Profiles
+                </button>
+                <button id="tabBtnFavorites" class="hero-tab-btn" role="tab" aria-selected="false" onclick="switchMainTab('favorites')">
+                    ❤️ My Collection (<span id="favTabCount">0</span>)
+                </button>
+            </nav>
+
+            <!-- Compact Single-Line Curation Statistics -->
+            <div class="hero-stats-strip" id="heroStatsStrip">
+                <span class="stat-badge">🎨 Curated Works: <strong id="statTotalVideos">240</strong></span>
+                <button class="stat-badge stat-gold stat-clickable" onclick="filterTo4K()" title="Filter to Native 4K UHD Masterworks">
+                    👑 Native 4K UHD: <strong id="stat4kCount">71 Works</strong>
+                </button>
+                <span class="stat-badge stat-accent">🖼️ Wallpapers: <strong id="statWallpapersCount">1,893</strong></span>
+                <span class="stat-badge">👁️ Cumulative Views: <strong id="statTotalViews">47M+</strong></span>
+                <button class="stat-badge stat-clickable" onclick="switchMainTab('channels')" title="Explore Channel Guides &amp; Aesthetic Profiles">
+                    🏛️ Channels: <strong id="statChannelCount">44</strong> ↗
+                </button>
+            </div>
+        </div>
+    </header>
+
+    <!-- Main Container -->
+    <main class="container">
+
+        <!-- SECTION 1: Impressionist Video Explorer & Wallpaper Gallery -->
+        <section id="explorerSection">
+            <div class="section-header">
+                <div>
+                    <h2 class="section-title" id="sectionHeaderTitle">🎨 The Impressionist Video Explorer</h2>
+                    <p class="section-desc" id="sectionHeaderDesc">
+                        Explore high-definition Impressionist masterworks, living canvas motion, and museum-grade reproductions.
+                    </p>
+                </div>
+            </div>
+
+            <!-- Controls: Search, Filter, Sort -->
+            <div class="controls-card">
+                <div class="search-box">
+                    <span class="search-icon">🔍</span>
+                    <input type="text" id="searchInput" class="search-input" placeholder="Search artists (Monet, Renoir, Sisley, Boudin) or themes (Winter, Venice, Paris)..." />
+                    <button id="searchClearBtn" class="search-clear-btn" onclick="clearSearch()" aria-label="Clear search input" title="Clear search query" style="display: none;">✕</button>
+                </div>
+
+                <!-- Guided Suggestions: Artists & Themes Quick-Filter Strip -->
+                <div class="search-suggestions-strip" id="searchSuggestionsStrip">
+                    <span class="suggestions-label">💡 Suggestions:</span>
+                    <div class="suggestions-scroll" id="suggestionsScroll">
+                        <!-- Populated by JS from SEARCH_GUIDE -->
+                    </div>
+                </div>
+
+                <!-- Mobile Progressive Disclosure Toggle for Filter Dropdowns -->
+                <button type="button" id="mobileFilterToggleBtn" class="mobile-filter-toggle-btn" onclick="toggleMobileFilters()" aria-expanded="false" aria-controls="filterGroup">
+                    <span>⚙️ Filters &amp; Refine (<span id="mobileActiveFilterCount">0</span> active)</span>
+                    <span id="mobileFilterArrow" class="filter-toggle-arrow">▾</span>
+                </button>
+
+                <div class="filter-group" id="filterGroup">
+                    <select id="playlistSelect" class="select-dropdown" style="display: none;" title="Filter by Curated Playlist">
+                        <option value="ALL">📚 All Playlists</option>
+                    </select>
+
+                    <select id="artistSelect" class="select-dropdown" title="Explore by Impressionist Artist">
+                        <option value="ALL">🎨 All Artists (18 Masters)</option>
+                    </select>
+
+                    <select id="themeSelect" class="select-dropdown" title="Explore by Curated Motif & Theme">
+                        <option value="ALL">🏛️ All Themes & Motifs (10 Categories)</option>
+                    </select>
+
+                    <select id="channelSelect" class="select-dropdown">
+                        <!-- Populated by JS -->
+                    </select>
+
+                    <select id="resSelect" class="select-dropdown">
+                        <option value="4K" selected>👑 4K UHD Only (69 works)</option>
+                        <option value="1080P_PLUS">💎 1080p HD or better (226 works)</option>
+                        <option value="1080P_EXACT">✨ 1080p Full HD (157 works)</option>
+                        <option value="ALL">All Resolutions (237 works)</option>
+                        <option value="OTHER">Standard HD (720p / 11 works)</option>
+                    </select>
+
+                    <select id="copyrightSelect" class="select-dropdown" title="Filter by Copyright & Download Permission">
+                        <option value="ALL">⚖️ All Licenses (Public Domain & View-Only)</option>
+                        <option value="DOWNLOADABLE">✅ Free Wallpaper Downloads Only</option>
+                        <option value="VIEW_ONLY">🔒 Copyright Reserved (View-Only)</option>
+                    </select>
+
+                    <select id="contentTypeSelect" class="select-dropdown" title="Filter by Authentic Archival Scans vs. AI-Animated Reimagining">
+                        <option value="ALL">🖼️ All Content Types</option>
+                        <option value="ARCHIVAL">🏛️ Authentic Archival Scans</option>
+                        <option value="AI_ANIMATED">✨ AI-Animated Reimagining</option>
+                    </select>
+
+                    <select id="sortSelect" class="select-dropdown">
+                        <option value="views_desc" selected>Popularity: High to Low</option>
+                        <option value="views_asc">Popularity: Low to High</option>
+                        <option value="res_desc">Resolution: Highest First</option>
+                        <option value="duration_desc">Duration: Longest First</option>
+                        <option value="duration_asc">Duration: Shortest First</option>
+                        <option value="title_asc">Title: Alphabetical (A-Z)</option>
+                    </select>
+                </div>
+
+                <!-- Wallpaper Batch Action Bar (Active in Wallpaper Gallery view) -->
+                <div class="wallpaper-download-bar" id="wallpaperDownloadBar" style="display: none;">
+                    <div class="wp-download-bar-info">
+                        <span class="wp-download-icon">🖼️</span>
+                        <div>
+                            <strong id="wpDownloadFilterTitle">Curated Wallpaper Collection</strong>
+                            <span id="wpDownloadFilterSubtitle" class="wp-download-subtitle">All wallpapers for selected channel and resolution</span>
+                        </div>
+                    </div>
+                    <div class="wallpaper-bar-actions">
+                        <button id="wpPlaySlideshowBtn" class="btn-play-slideshow" onclick="startSlideshow()" title="Play all matching wallpapers as an immersive fullscreen slideshow">
+                            ▶️ Fullscreen Slideshow (<span id="wpSlideshowCount">0</span>)
+                        </button>
+                        <button id="wpDownloadFilteredBtn" class="btn-download-filtered" onclick="downloadAllFilteredWallpapers()" title="Download all wallpapers matching current channel and resolution filters as a single ZIP archive">
+                            📦 Download All (<span id="wpDownloadFilteredCount">0</span>) (ZIP)
+                        </button>
+                    </div>
+                </div>
+
+                <!-- Favorites Action Bar (Active in My Collection view) -->
+                <div class="wallpaper-download-bar favorites-action-bar" id="favoritesActionBar" style="display: none;">
+                    <div class="wp-download-bar-info">
+                        <span class="wp-download-icon">❤️</span>
+                        <div>
+                            <strong id="favBarTitle">Personal Curated Salon</strong>
+                            <span id="favBarSubtitle" class="wp-download-subtitle">Preserved locally on your device across sessions</span>
+                        </div>
+                    </div>
+                    <div class="wallpaper-bar-actions">
+                        <button id="favShareBtn" class="btn-share-collection" onclick="sharePersonalCollection()" title="Generate a shareable link to open your saved collection on any device or send to friends">
+                            🔗 Share Collection
+                        </button>
+                        <button id="favClearBtn" class="btn-clear-collection" onclick="confirmClearCollection()" title="Remove all saved works from your collection">
+                            🗑️ Clear All
+                        </button>
+                    </div>
+                </div>
+
+                <div class="results-info" id="resultsCount" aria-live="polite">Showing 46 4K UHD works</div>
+            </div>
+
+            <!-- Artist Info Strip: era & historical context, shown when one artist is selected -->
+            <div class="artist-info-strip" id="artistInfoStrip" style="display: none;">
+                <span class="artist-info-icon" id="artistInfoIcon">🎨</span>
+                <div class="artist-info-text">
+                    <div class="artist-info-name-row">
+                        <strong id="artistInfoName">Claude Monet</strong>
+                        <span class="artist-info-era" id="artistInfoEra">French Impressionism</span>
+                    </div>
+                    <p class="artist-info-bio" id="artistInfoBio"></p>
+                </div>
+            </div>
+
+            <!-- View 1: Video Grid -->
+            <div class="videos-grid" id="videosGrid">
+                <!-- Video cards rendered by app.js -->
+            </div>
+
+            <!-- View 2: Wallpaper Grid (Shown in wallpaper mode) -->
+            <div class="wallpapers-grid" id="wallpapersGrid" style="display: none;">
+                <!-- Wallpapers rendered by app.js -->
+            </div>
+
+            <!-- View 3: Empty State for Favorites -->
+            <div id="favoritesEmptyState" class="favorites-empty-state" style="display: none;">
+                <div class="empty-state-icon">🏛️</div>
+                <h3 class="empty-state-title">Your Impressionist Collection is Empty</h3>
+                <p class="empty-state-desc">
+                    Curate your personal digital salon. Click the 🤍 heart on any painting or wallpaper to save it here for instant access.
+                </p>
+                <button class="btn-empty-explore" onclick="switchMainTab('videos')">
+                    🎨 Explore Masterworks
+                </button>
+            </div>
+        </section>
+
+        <!-- SECTION 2: Channel Guides & Aesthetic Profiles (Toggled as a dedicated Tab view) -->
+        <section id="channelsSection" style="display: none;">
+            <div class="channel-view-nav-strip">
+                <button class="btn-return-explorer" onclick="switchMainTab('videos')" title="Return to the Video Explorer">
+                    ← Return to Video Explorer
+                </button>
+                <div class="channel-guides-badge">
+                    <span id="channelGuidesBadge">6 Featured Curators · 39 Source Channels</span>
+                </div>
+            </div>
+
+            <div class="section-header">
+                <div>
+                    <h2 class="section-title">🏛️ The Channel Guides &amp; Aesthetic Profiles</h2>
+                    <p class="section-desc">
+                        A critical scholarly review of the curatorial strategies, recurring titles, and artistic philosophies defining each channel in this collection. Click any curator to filter their masterworks.
+                    </p>
+                </div>
+            </div>
+
+            <div class="channels-grid" id="channelsGrid">
+                <!-- Injected via app.js -->
+            </div>
+        </section>
+
+    </main>
+
+    <!-- Modal 1: Video Player Lightbox -->
+    <div id="modalOverlay" class="modal-overlay" role="dialog" aria-modal="true" aria-label="Video Player Lightbox">
+        <div class="modal-content">
+            <div class="modal-header compact-modal-header">
+                <div class="modal-header-tag-group">
+                    <h3 id="modalTitle" class="modal-title" title="Painting Title">Claude Monet Masterwork</h3>
+                    <div class="modal-res-tag" id="modalVideoRes">4K UHD (3840×2160)</div>
+                </div>
+                <div class="modal-header-actions">
+                    <button class="btn-close-modal" onclick="closeVideoModal()" aria-label="Close video player dialog" title="Close Player (Esc)">✕</button>
+                </div>
+            </div>
+            <div class="player-frame-wrapper" id="playerFrameWrapper">
+                <!-- iframe injected dynamically via youtube-nocookie.com or privacy streaming -->
+            </div>
+            
+            <!-- Clean, professional modal footer with clear hierarchy and attribution -->
+            <div class="modal-footer-toolbar">
+                <div class="modal-footer-info">
+                    <span class="static-pill" id="modalFooterChannel">Impressionist Masterwork</span>
+                    <span class="modal-footer-dot">·</span>
+                    <span class="static-pill static-pill-res" id="modalFooterQuality">👑 4K UHD</span>
+                    <a id="modalFooterChannelLink" href="https://www.youtube.com" target="_blank" rel="noopener noreferrer" class="channel-attribution-link" title="Visit originating channel on YouTube">
+                        Channel Source ↗
+                    </a>
+                </div>
+                <div class="modal-footer-actions">
+                    <button id="modalFavBtn" class="btn-modal-action-fav" onclick="toggleFavoriteFromModal()" aria-label="Save to personal collection" title="Save to My Collection">
+                        🤍 Save to Collection
+                    </button>
+                    <button id="modalViewWallpapersBtn" class="btn-modal-action-wp" onclick="openWallpaperFromModal()" aria-label="View wallpaper scene snapshots" title="View high-resolution wallpaper snapshots from this video">
+                        🖼️ View Wallpapers <span class="btn-count-pill" id="modalWpCount">0</span>
+                    </button>
+                    <a id="modalYtDirectLink" href="https://www.youtube.com/playlist?list=PLeqGkucOU6lA" target="_blank" rel="noopener noreferrer" class="btn-modal-action-secondary" aria-label="Watch video on YouTube" title="Watch this video on YouTube">
+                        Watch on YouTube ↗
+                    </a>
+                </div>
+            </div>
+
+            <!-- Curator Mode actions: only rendered when Curator Mode is active -->
+            <div class="modal-curator-bar" id="modalCuratorBar" style="display: none;">
+                <span class="modal-curator-label">🔧 Curator</span>
+                <select id="modalCuratorThemeSelect" class="curator-theme-select" title="Reclassify this video's theme" onchange="curatorSetTheme(this.value)">
+                    <!-- Populated by JS from CATALOG_THEMES -->
+                </select>
+                <select id="modalCuratorMaxFrames" class="curator-theme-select" title="Override how many wallpapers to extract from this video (Auto = algorithm decides)" onchange="curatorSetMaxFrames(this.value)">
+                    <option value="">🖼️ Frames: Auto</option>
+                    <option value="1">🖼️ Frames: 1</option>
+                    <option value="3">🖼️ Frames: 3</option>
+                    <option value="5">🖼️ Frames: 5</option>
+                    <option value="8">🖼️ Frames: 8</option>
+                    <option value="12">🖼️ Frames: 12</option>
+                    <option value="16">🖼️ Frames: 16</option>
+                    <option value="24">🖼️ Frames: 24</option>
+                    <option value="32">🖼️ Frames: 32</option>
+                </select>
+                <button id="modalCuratorVideoCopyright" class="curator-toggle-btn" onclick="curatorToggleVideoCopyright()" title="Mark this specific video as copyright-protected">
+                    🔒 Video
+                </button>
+                <button id="modalCuratorChannelCopyright" class="curator-toggle-btn" onclick="curatorToggleChannelCopyright()" title="Mark the entire channel as copyright-protected">
+                    🔒 Channel
+                </button>
+                <button id="modalCuratorPriority" class="curator-toggle-btn" onclick="curatorTogglePriority()" title="Prioritize this video for more wallpaper extraction">
+                    ⭐ Priority
+                </button>
+                <button id="modalCuratorReextract" class="curator-toggle-btn" onclick="curatorToggleReextract()" title="Queue this video for re-extraction with the current algorithm next time you run: python3 pipeline.py --process-curation-requests">
+                    🔁 Re-extract
+                </button>
+                <button id="modalCuratorDelete" class="curator-toggle-btn curator-toggle-btn-danger" onclick="curatorToggleDeletion()" title="Flag this video for removal from the catalog">
+                    🗑️ Delete
+                </button>
+            </div>
+        </div>
+    </div>
+
+    <!-- Modal 2: Wallpaper Gallery Lightbox -->
+    <div id="wallpaperModalOverlay" class="modal-overlay" role="dialog" aria-modal="true" aria-label="Wallpaper Preview">
+        <div class="wallpaper-modal-content">
+            <div class="wallpaper-modal-header">
+                <div class="wp-header-title-block">
+                    <h3 id="wpModalTitle" class="wp-modal-title" title="Wallpaper Title">Wallpaper Preview</h3>
+                    <div id="wpModalSubtitle" class="wp-modal-subtitle">Claude Monet</div>
+                    <div id="wpModalRightsBanner" class="wp-modal-rights-banner" aria-label="Copyright and licensing attribution">
+                        <span id="wpModalRightsIcon" class="rights-icon">⚖️</span>
+                        <span id="wpModalRightsText" class="rights-text">Public Domain Impressionism</span>
+                    </div>
+                </div>
+                <button class="btn-close-modal" onclick="closeWallpaperModal()" aria-label="Close wallpaper gallery dialog" title="Close Gallery (Esc)">✕</button>
+            </div>
+
+            <!-- Dedicated full-width action toolbar below title row (P0 #1, P3 #4, P4 #6) -->
+            <div class="wp-modal-toolbar">
+                <button id="wpModalSlideshowBtn" class="btn-modal-slideshow-primary" onclick="startSlideshowFromCurrentModal()" aria-label="Play fullscreen wallpaper slideshow" title="Play these snapshots as an immersive fullscreen slideshow">
+                    ▶️ Fullscreen Slideshow
+                </button>
+                <div class="wp-toolbar-secondary-actions">
+                    <button id="wpDownloadCurrentBtn" class="btn-modal-action-secondary" onclick="downloadCurrentWallpaper()" aria-label="Download current scene wallpaper" title="Download the currently viewed high-resolution wallpaper">
+                        ⬇ Current Scene <span class="btn-count-pill" id="wpCurrentSceneNum">1</span>
+                    </button>
+                    <button id="wpDownloadAllBtn" class="btn-modal-action-secondary" onclick="downloadAllWallpapers()" aria-label="Download all wallpapers as ZIP package" title="Download all wallpapers for this title as a ZIP package">
+                        📦 Download All <span class="btn-count-pill" id="wpAllCount">0</span>
+                    </button>
+                    <button id="wpJumpVideoBtn" class="btn-modal-action-secondary" onclick="jumpToSceneInPlayer()" aria-label="Jump to scene in video player" title="Watch this scene right in the in-page player">
+                        🎬 Jump to Video <span class="btn-count-pill" id="wpJumpTimestamp">00:00</span>
+                    </button>
+                </div>
+            </div>
+
+            <div class="wp-main-view">
+                <img id="wpMainImage" class="wp-large-img" src="" alt="Wallpaper Preview" />
+                <div id="wpBadgeResolution" class="wp-badge-resolution">4K UHD (3840×2160)</div>
+            </div>
+
+            <!-- Thumbnail Carousel of Available Snapshots -->
+            <div class="wp-carousel-tray" id="wpCarouselTray">
+                <!-- Thumbnails injected dynamically -->
+            </div>
+        </div>
+    </div>
+
+    <!-- Modal 3: Fullscreen Wallpaper Slideshow -->
+    <div id="slideshowOverlay" class="slideshow-overlay" role="dialog" aria-label="Fullscreen Wallpaper Slideshow" style="display: none;">
+        <!-- Top Toolbar (Fades out when inactive) -->
+        <div class="slideshow-top-bar" id="slideshowTopBar">
+            <div class="slideshow-meta">
+                <span class="slideshow-counter" id="slideshowCounter">1 / 1</span>
+                <div class="slideshow-title-group">
+                    <h3 class="slideshow-art-title" id="slideshowTitle">Impressionist Masterwork</h3>
+                    <div class="slideshow-art-details">
+                        <span id="slideshowChannel" class="slideshow-channel">Channel</span>
+                        <span class="slideshow-bullet">·</span>
+                        <span id="slideshowRes" class="slideshow-res-badge">4K UHD</span>
+                        <span class="slideshow-bullet">·</span>
+                        <span id="slideshowTime" class="slideshow-time">Scene at 00:00</span>
+                    </div>
+                </div>
+            </div>
+
+            <div class="slideshow-top-actions">
+                <div class="slideshow-formfactor-control" title="Filter Slideshow by Device Display Form Factor">
+                    <label for="slideshowFormFactorSelect">📐 Display:</label>
+                    <select id="slideshowFormFactorSelect" onchange="changeSlideshowFormFactor(this.value)">
+                        <option value="desktop" selected>🖥️ Desktop (Widescreen)</option>
+                        <option value="mobile">📱 Mobile (Portrait)</option>
+                        <option value="all">✨ All Form Factors</option>
+                    </select>
+                </div>
+
+                <div class="slideshow-audio-control" title="Ambient Classical Music (Debussy & Satie)">
+                    <button class="slideshow-btn-icon" id="slideshowAudioBtn" onclick="toggleSlideshowAudio()" aria-label="Play or mute ambient classical music" title="Play/Mute Ambient Classical Music (M)">
+                        🎵
+                    </button>
+                    <span class="slideshow-audio-title" id="slideshowAudioTitle">Debussy: Clair de Lune</span>
+                    <button class="slideshow-btn-icon-subtle" onclick="nextAmbientTrack()" aria-label="Next ambient classical track" title="Next Track (N)">⏭️</button>
+                </div>
+
+                <button class="slideshow-btn-icon" id="slideshowFitBtn" onclick="toggleSlideshowFit()" aria-label="Toggle fit or fill screen display mode" title="Toggle Fit / Fill Display Mode (C)">
+                    🖼️
+                </button>
+
+                <button class="slideshow-btn-icon active" id="slideshowKenBurnsBtn" onclick="toggleSlideshowKenBurns()" aria-label="Toggle Ken Burns cinematic pan and zoom motion" title="Ken Burns Cinematic Motion active — Click to disable (K)">
+                    🎬
+                </button>
+
+                <div class="slideshow-speed-control" title="Slideshow Interval">
+                    <label for="slideshowSpeedSelect">⏱️ Interval:</label>
+                    <select id="slideshowSpeedSelect" onchange="changeSlideshowSpeed(this.value)">
+                        <option value="3000">3 sec</option>
+                        <option value="5000" selected>5 sec</option>
+                        <option value="8000">8 sec</option>
+                        <option value="12000">12 sec</option>
+                    </select>
+                </div>
+
+                <button class="slideshow-btn-icon" onclick="downloadCurrentSlideshowImage()" aria-label="Download current wallpaper snapshot" title="Download this wallpaper snapshot">
+                    ⬇️
+                </button>
+
+                <button class="slideshow-btn-icon" id="slideshowFullscreenBtn" onclick="toggleNativeFullscreen()" aria-label="Toggle browser fullscreen mode" title="Toggle Browser Fullscreen (F)">
+                    ⛶
+                </button>
+
+                <button class="slideshow-btn-icon slideshow-close-btn" onclick="closeSlideshow()" aria-label="Exit fullscreen slideshow" title="Exit Slideshow (Esc)">
+                    ✕
+                </button>
+            </div>
+        </div>
+
+        <!-- Main Slide Display Area -->
+        <div class="slideshow-stage" id="slideshowStage" onclick="toggleSlideshowPlayPause()">
+            <div class="slideshow-ambient-bg" id="slideshowAmbientBg"></div>
+            <img id="slideshowImage" class="slideshow-img" src="" alt="Slideshow Wallpaper" />
+            
+            <!-- Progress Bar at bottom of stage -->
+            <div class="slideshow-progress-container">
+                <div class="slideshow-progress-bar" id="slideshowProgressBar"></div>
+            </div>
+        </div>
+
+        <!-- Navigation Arrows -->
+        <button class="slideshow-nav-arrow slideshow-prev" onclick="navigateSlideshow(-1)" aria-label="Previous Wallpaper" title="Previous (Left Arrow)">
+            ❮
+        </button>
+        <button class="slideshow-nav-arrow slideshow-next" onclick="navigateSlideshow(1)" aria-label="Next Wallpaper" title="Next (Right Arrow)">
+            ❯
+        </button>
+
+        <!-- Bottom Toolbar (Play/Pause, Step, Help) -->
+        <div class="slideshow-bottom-bar" id="slideshowBottomBar">
+            <button class="slideshow-ctrl-btn" onclick="navigateSlideshow(-1)" title="Previous (Left Arrow)">
+                ⏮️ Prev
+            </button>
+            <button class="slideshow-ctrl-btn slideshow-play-btn" id="slideshowPlayBtn" onclick="toggleSlideshowPlayPause()" title="Play / Pause (Spacebar)">
+                ⏸️ Pause
+            </button>
+            <button class="slideshow-ctrl-btn" onclick="navigateSlideshow(1)" title="Next (Right Arrow)">
+                Next ⏭️
+            </button>
+        </div>
+    </div>
+
+    <!-- Footer -->
+    <footer class="site-footer">
+        <p class="footer-contact-line">
+            Contact: <strong>sachin</strong> · Email: <a href="mailto:lgtkgtv@gmail.com" class="footer-email-link">lgtkgtv@gmail.com</a>
+        </p>
+
+        <div class="footer-quote">
+            “Color is my day-long obsession, joy, and torment.”
+        </div>
+        <p class="footer-quote-author">— Claude Monet</p>
+        <p class="footer-source-note">
+            Curated for Art Lovers &amp; Impressionism Admirers · Catalog source: 
+            <a href="https://www.youtube.com/playlist?list=PLeqGkucOU6lA" target="_blank" rel="noopener noreferrer" class="footer-source-link" title="Original YouTube playlist: sh_Monet inspired Visual Arts">
+                YouTube Playlist (sh_Monet inspired Visual Arts) ↗
+            </a>
+            · <button class="footer-legal-link" onclick="openLegalModal()" title="View copyright, public domain, and fair use information">Legal &amp; Copyright Notice</button>
+        </p>
+    </footer>
+
+    <!-- Modal 5: Legal & Copyright Notice Lightbox -->
+    <div id="legalModalOverlay" class="modal-overlay" role="dialog" aria-modal="true" aria-label="Legal & Copyright Notice" style="display: none;">
+        <div class="legal-modal-content">
+            <div class="modal-header">
+                <div>
+                    <h3 class="modal-title">⚖️ Legal, Copyright &amp; Fair Use Notice</h3>
+                    <div class="modal-res-tag">Educational Art Index · Downloads Restricted by Default</div>
+                </div>
+                <button class="btn-close-modal" onclick="closeLegalModal()" aria-label="Close Legal Notice Dialog">✕</button>
+            </div>
+
+            <div class="legal-modal-body">
+                <section class="legal-section">
+                    <h4 class="legal-heading">🎨 1. Public Domain Status of the Original Paintings</h4>
+                    <p class="legal-text">
+                        The Impressionist paintings depicted (by Claude Monet, Camille Pissarro, Pierre-Auguste Renoir, Alfred Sisley, Eugène Boudin, Paul Cézanne, Edgar Degas, and contemporaries) were created between the 1860s and 1920s and are in the worldwide <strong>Public Domain</strong> as original two-dimensional works. That status covers the paintings themselves - it does not automatically extend to a specific video production about them. A faithful, unedited photographic reproduction of a public-domain painting does not gain new copyright protection (<em>Bridgeman Art Library v. Corel Corp.</em>, 36 F. Supp. 2d 191). Most titles in this index are <strong>not</strong> that: the majority are AI-animated reimaginings, edited compilations, or otherwise transformed video productions created by third-party YouTube channels, and that production work is a separate, potentially copyrightable creative contribution belonging to its creator.
+                    </p>
+                </section>
+
+                <section class="legal-section">
+                    <h4 class="legal-heading">📺 2. YouTube Video Presentation &amp; Direct Attribution</h4>
+                    <p class="legal-text">
+                        <em>L'Impressionnisme Vivant</em> does not host, re-encode, or redistribute full video files. All video playback is served through standard YouTube privacy-enhanced embedded players (<code>youtube-nocookie.com</code>). Video playback directly supports the originating creators—including LearnFromMasters, Muse Visual Art, Beautiful Living Art, and other channels—by routing official view counts, watch time, and advertising revenue directly to their YouTube accounts. Direct channel links and YouTube watch links are prominently attributed on every title card and modal.
+                    </p>
+                </section>
+
+                <section class="legal-section">
+                    <h4 class="legal-heading">🖼️ 3. Wallpaper Snapshots - Downloads Are Restricted by Default</h4>
+                    <p class="legal-text">
+                        Wallpaper snapshots <strong>are</strong> frames extracted directly from the videos described in Section 1. Because most videos here are third-party creative productions rather than faithful photo reproductions, download access defaults to <strong>view-only</strong> for every channel until its terms have been individually reviewed and it's been explicitly allowlisted as safe to redistribute stills from. A channel showing "Free Wallpaper Download" has gone through that review; everything else remains fullscreen/slideshow-viewable but not downloadable, regardless of how old or well-known the depicted painting is. If you are a content creator and believe your channel's classification is wrong in either direction, contact the curator (Section 5).
+                    </p>
+                </section>
+
+                <section class="legal-section">
+                    <h4 class="legal-heading">🎵 4. Classical Audio Suite</h4>
+                    <p class="legal-text">
+                        The ambient classical audio suite (Debussy, Satie, Ravel) is <strong>currently disabled</strong>. The musical compositions are public domain, but the specific recordings bundled with this project have unverified provenance - a sound recording carries its own copyright independent of the composition, and these files carry no metadata identifying a performer, source, or license. The feature will be re-enabled only once each recording's provenance and license are confirmed, or the files are replaced with verifiably-licensed recordings. See <code>audio/README.md</code> for details.
+                    </p>
+                </section>
+
+                <section class="legal-section">
+                    <h4 class="legal-heading">📬 5. Rights Holder Contact</h4>
+                    <p class="legal-text">
+                        This is a small, individually-curated project, not a platform hosting user-submitted content, so no statutory safe-harbor process applies here - this is a direct notice-and-response contact, not a DMCA agent designation. If you are a copyright holder or YouTube channel creator and have questions, concerns, or removal/reclassification requests regarding any title or frame snapshot in this index, please contact curator <strong>sachin g</strong> directly at <a href="mailto:lgtkgtv@gmail.com?subject=monet-Impressionists-gallery%20Notice%3A%20" class="legal-contact-link">lgtkgtv@gmail.com</a>. Valid requests are honored promptly.
+                    </p>
+                </section>
+
+                <div class="legal-modal-footer">
+                    <button class="btn-legal-close" onclick="closeLegalModal()">
+                        Understood &amp; Close
+                    </button>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Floating Back to Top Button -->
+    <button id="backToTopBtn" class="back-to-top-btn" onclick="scrollToTop()" title="Back to top of gallery" aria-label="Back to top">
+        ↑
+    </button>
+
+    <!-- Scripts with Cache-Busting -->
+    <script src="./config.js?v=24"></script>
+    <script src="./data.js?v=24"></script>
+    <script src="./app.js?v=24"></script>
+    
+    <!-- PWA Service Worker Registration -->
+    <script>
+        if ('serviceWorker' in navigator) {
+            window.addEventListener('load', () => {
+                navigator.serviceWorker.register('./sw.js?v=24')
+                    .then((reg) => {
+                        console.log('✨ Monet Gallery ServiceWorker registered with scope:', reg.scope);
+                        if (typeof reg.update === 'function') {
+                            reg.update();
+                        }
+                    })
+                    .catch((err) => {
+                        console.warn('⚠️ ServiceWorker registration failed:', err);
+                    });
+            });
+        }
+    </script>
+</body>
+</html>
