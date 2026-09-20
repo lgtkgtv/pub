@@ -52,8 +52,12 @@ pub/
 
 ---
 
-## ⚖️ Rights, Takedown & Contact
+## ⚖️ Rights, Takedown & Policies
 
 * All masterworks in the `art/` catalog are strictly in the worldwide **Public Domain**.
 * Notice & Takedown inquiries are honored within 24 hours.
-* **Curator Contact**: [`lgtkgtv@gmail.com`](mailto:lgtkgtv@gmail.com)
+
+---
+
+<sub>sachin godse - <a href="mailto:lgtkgtv@gmail.com">lgtkgtv@gmail.com</a></sub>
+

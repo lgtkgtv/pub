@@ -13,3 +13,8 @@ Curated digital exhibitions, visual history explorations, and interactive fine a
 ### 2. [Pantheon — 500 Years of Western Art & Master Gallery](pantheon-art/)
 * **Live Site**: [https://lgtkgtv.github.io/pub/art/pantheon-art/](https://lgtkgtv.github.io/pub/art/pantheon-art/)
 * **Description**: Museum-grade visual digital exhibition across 500 years of Western art history, 10 historic titans, and uncompressed public domain museum scans up to 45.8 megapixels with real-life scale comparisons and 3.0× loupe.
+
+---
+
+<sub>sachin godse - <a href="mailto:lgtkgtv@gmail.com">lgtkgtv@gmail.com</a></sub>
+
