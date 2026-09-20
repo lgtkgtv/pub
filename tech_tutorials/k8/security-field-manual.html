@@ -1,0 +1,1263 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Securing Kubernetes in Production — A Field Manual</title>
+<script src="https://cdn.tailwindcss.com"></script>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Source+Serif+4:opsz,wght@8..60,400;8..60,600;8..60,700&family=Inter:wght@400;500;600;700&family=IBM+Plex+Mono:wght@400;500;600&display=swap" rel="stylesheet">
+<script>
+  tailwind.config = {
+    theme: {
+      extend: {
+        colors: {
+          ink: '#14181F', subink: '#4B5563', surface: '#F6F7F9', line: '#E2E5EA',
+          teal: '#1D4E4B', tealsoft: '#E8F0EF', rust: '#A8412B', rustsoft: '#FBECE8',
+          amber: '#8A5A12', ambersoft: '#FBF2E1'
+        },
+        fontFamily: {
+          serif: ['"Source Serif 4"', 'Georgia', 'serif'],
+          sans: ['Inter', 'system-ui', 'sans-serif'],
+          mono: ['"IBM Plex Mono"', 'monospace']
+        }
+      }
+    }
+  }
+</script>
+<style>
+  html { scroll-behavior: smooth; }
+  body { font-family: 'Inter', system-ui, sans-serif; }
+  h1, h2, h3, .serif { font-family: 'Source Serif 4', Georgia, serif; }
+  code, .mono { font-family: 'IBM Plex Mono', monospace; }
+  .module-index { font-family: 'Source Serif 4', Georgia, serif; font-variant-numeric: oldstyle-nums; }
+  ::selection { background: #E8F0EF; color: #14181F; }
+  @media (prefers-reduced-motion: reduce) { * { transition: none !important; animation: none !important; } }
+  .focus-ring:focus-visible { outline: 2px solid #1D4E4B; outline-offset: 2px; }
+  table { table-layout: fixed; }
+</style>
+</head>
+<body class="bg-white text-ink antialiased">
+
+  <header class="border-b border-line sticky top-0 z-40 bg-white/90 backdrop-blur">
+    <div class="max-w-5xl mx-auto px-6 py-4 flex items-center justify-between">
+      <div class="flex items-center gap-3">
+        <a href="./index.html" class="text-subink hover:text-ink flex items-center gap-1 text-xs mr-1 transition-colors" title="Kubernetes Tutorials Hub">
+          <svg class="h-3.5 w-3.5" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M19 12H5M12 19l-7-7 7-7"/></svg>
+          <span class="font-medium">K8s Track</span>
+        </a>
+        <span class="h-2 w-2 rounded-full bg-teal"></span>
+        <span class="text-sm text-subink">Security assurance field manual</span>
+      </div>
+      <nav class="hidden lg:flex items-center gap-4 text-sm text-subink">
+        <a href="#why" class="hover:text-ink focus-ring">Why</a>
+        <a href="#glossary" class="hover:text-ink focus-ring">Glossary</a>
+        <a href="#compliance" class="hover:text-ink focus-ring">Compliance</a>
+        <a href="#module-01" class="hover:text-ink focus-ring">Foundations</a>
+        <a href="#module-03" class="hover:text-ink focus-ring">Hardening</a>
+        <a href="#module-05" class="hover:text-ink focus-ring">Benchmarks</a>
+        <a href="#module-08" class="hover:text-ink focus-ring">Labs</a>
+        <a href="#module-09" class="hover:text-ink focus-ring">Quiz</a>
+        <span class="text-line">|</span>
+        <a href="./step-by-step.html" class="hover:text-teal font-medium text-xs">Step by Step &rarr;</a>
+        <a href="./ai-training.html" class="hover:text-teal font-medium text-xs">AI Training &rarr;</a>
+      </nav>
+    </div>
+  </header>
+
+  <main class="max-w-5xl mx-auto px-6">
+
+    <!-- Executive summary -->
+    <section class="pt-16 pb-12 border-b border-line">
+      <p class="text-2xl md:text-3xl leading-snug serif text-ink max-w-3xl">
+        <strong>Kubernetes security is a continuous practice, not a one-time configuration.</strong> This manual walks through the architecture, the hardening decisions, and the automation that turn a default cluster into one you can put real workloads on.
+      </p>
+      <p class="mt-5 text-subink max-w-2xl leading-relaxed">
+        Seven modules, in order: how the cluster actually works, the principles behind the controls, the hardening choices themselves, where AI changes the threat model, the benchmarks auditors check, the automation that enforces all of it, and a working dashboard mockup you can lift directly.
+      </p>
+    </section>
+
+    <!-- WHY -->
+    <section id="why" class="py-16 border-b border-line scroll-mt-20">
+      <h2 class="text-2xl md:text-3xl font-semibold text-ink mb-4">Why does Kubernetes exist?</h2>
+      <p class="text-subink max-w-2xl mb-10 leading-relaxed">
+        Before you look at a single YAML file, it helps to know what problem this whole system is solving. No jargon in this section — just the shape of the idea.
+      </p>
+
+      <h3 class="text-sm font-medium text-subink mb-4">What changes when a server crashes</h3>
+      <div class="grid md:grid-cols-2 gap-px bg-line border border-line rounded-lg overflow-hidden mb-4">
+        <div class="bg-white p-6">
+          <p class="text-sm text-rust mb-4 font-medium">Without an orchestrator</p>
+          <svg viewBox="0 0 240 110" class="w-full max-w-xs mx-auto mb-4" role="img" aria-label="A grid of servers with one shown as down and staying down">
+            <rect x="10" y="10" width="60" height="40" rx="6" fill="#FFFFFF" stroke="#E2E5EA"/>
+            <rect x="90" y="10" width="60" height="40" rx="6" fill="#FBECE8" stroke="#A8412B"/>
+            <line x1="102" y1="22" x2="138" y2="38" stroke="#A8412B" stroke-width="2.5" stroke-linecap="round"/>
+            <line x1="138" y1="22" x2="102" y2="38" stroke="#A8412B" stroke-width="2.5" stroke-linecap="round"/>
+            <rect x="170" y="10" width="60" height="40" rx="6" fill="#FFFFFF" stroke="#E2E5EA"/>
+            <rect x="10" y="60" width="60" height="40" rx="6" fill="#FFFFFF" stroke="#E2E5EA"/>
+            <rect x="90" y="60" width="60" height="40" rx="6" fill="#FFFFFF" stroke="#E2E5EA"/>
+            <rect x="170" y="60" width="60" height="40" rx="6" fill="#FFFFFF" stroke="#E2E5EA"/>
+          </svg>
+          <p class="text-sm text-subink leading-relaxed">A server crashes at 2am. It stays down until a human notices and fixes it by hand.</p>
+        </div>
+        <div class="bg-white p-6">
+          <p class="text-sm text-teal mb-4 font-medium">With Kubernetes</p>
+          <svg viewBox="0 0 240 110" class="w-full max-w-xs mx-auto mb-4" role="img" aria-label="The same grid of servers, with the down one automatically fixed">
+            <rect x="10" y="10" width="60" height="40" rx="6" fill="#FFFFFF" stroke="#E2E5EA"/>
+            <rect x="90" y="10" width="60" height="40" rx="6" fill="#E8F0EF" stroke="#1D4E4B"/>
+            <polyline points="104,30 116,40 138,18" fill="none" stroke="#1D4E4B" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"/>
+            <rect x="170" y="10" width="60" height="40" rx="6" fill="#FFFFFF" stroke="#E2E5EA"/>
+            <rect x="10" y="60" width="60" height="40" rx="6" fill="#FFFFFF" stroke="#E2E5EA"/>
+            <rect x="90" y="60" width="60" height="40" rx="6" fill="#FFFFFF" stroke="#E2E5EA"/>
+            <rect x="170" y="60" width="60" height="40" rx="6" fill="#FFFFFF" stroke="#E2E5EA"/>
+          </svg>
+          <p class="text-sm text-subink leading-relaxed">Kubernetes notices immediately and replaces it — usually before anyone's paged.</p>
+        </div>
+      </div>
+      <p class="text-xs text-subink mb-12">That's the core value proposition. Everything else in this manual is about doing that safely, at scale, without opening new holes in the process.</p>
+
+      <h3 class="text-sm font-medium text-subink mb-4">The big picture, in one shape</h3>
+      <div class="border border-line rounded-lg p-6 mb-4 overflow-x-auto">
+        <svg viewBox="0 0 700 220" class="w-full min-w-[560px]" role="img" aria-label="Control plane, the brain, sends instructions to worker nodes, the hands, which report status back">
+          <rect x="20" y="40" width="280" height="140" rx="12" fill="#E8F0EF" stroke="#1D4E4B" stroke-width="1.5"/>
+          <text x="160" y="90" text-anchor="middle" font-family="Source Serif 4, serif" font-size="20" fill="#14181F">Control plane</text>
+          <text x="160" y="112" text-anchor="middle" font-family="Inter" font-size="12" fill="#8A5A12">the brain</text>
+          <text x="160" y="140" text-anchor="middle" font-family="Inter" font-size="12" fill="#4B5563">decides what should happen</text>
+
+          <rect x="400" y="40" width="280" height="140" rx="12" fill="#F6F7F9" stroke="#E2E5EA" stroke-width="1.5"/>
+          <text x="540" y="90" text-anchor="middle" font-family="Source Serif 4, serif" font-size="20" fill="#14181F">Worker nodes</text>
+          <text x="540" y="112" text-anchor="middle" font-family="Inter" font-size="12" fill="#8A5A12">the hands</text>
+          <text x="540" y="140" text-anchor="middle" font-family="Inter" font-size="12" fill="#4B5563">do the actual work</text>
+
+          <line x1="300" y1="90" x2="398" y2="90" stroke="#4B5563" stroke-width="1.5" marker-end="url(#arrowWhy1)"/>
+          <text x="349" y="80" text-anchor="middle" font-family="Inter" font-size="10" fill="#4B5563">instructions</text>
+
+          <line x1="398" y1="150" x2="300" y2="150" stroke="#4B5563" stroke-width="1.5" marker-end="url(#arrowWhy2)"/>
+          <text x="349" y="168" text-anchor="middle" font-family="Inter" font-size="10" fill="#4B5563">status updates</text>
+
+          <defs>
+            <marker id="arrowWhy1" markerWidth="8" markerHeight="8" refX="4" refY="4" orient="auto"><path d="M0,0 L8,4 L0,8 Z" fill="#4B5563"/></marker>
+            <marker id="arrowWhy2" markerWidth="8" markerHeight="8" refX="4" refY="4" orient="auto"><path d="M0,0 L8,4 L0,8 Z" fill="#4B5563"/></marker>
+          </defs>
+        </svg>
+      </div>
+      <p class="text-sm text-subink max-w-2xl">That's the whole idea, at the highest level. Module 1 below zooms into exactly how the brain and the hands talk to each other — and the glossary just ahead gives you a quick-reference for the words you'll see along the way.</p>
+    </section>
+
+    <!-- Table of contents -->
+    <section class="py-10 border-b border-line">
+      <h2 class="text-sm font-medium text-subink mb-5">Contents</h2>
+      <div class="grid sm:grid-cols-2 gap-x-8 gap-y-3">
+        <a href="#why" class="flex items-baseline gap-3 group focus-ring rounded"><span class="module-index text-lg text-teal">—</span><span class="text-ink group-hover:text-teal">Why does Kubernetes exist?</span></a>
+        <a href="#glossary" class="flex items-baseline gap-3 group focus-ring rounded"><span class="module-index text-lg text-teal">—</span><span class="text-ink group-hover:text-teal">Glossary: ten terms you'll see everywhere</span></a>
+        <a href="#compliance" class="flex items-baseline gap-3 group focus-ring rounded"><span class="module-index text-lg text-teal">—</span><span class="text-ink group-hover:text-teal">Compliance framework prioritization</span></a>
+        <a href="#module-01" class="flex items-baseline gap-3 group focus-ring rounded"><span class="module-index text-lg text-teal">01</span><span class="text-ink group-hover:text-teal">Architectural and operational foundations</span></a>
+        <a href="#module-02" class="flex items-baseline gap-3 group focus-ring rounded"><span class="module-index text-lg text-teal">02</span><span class="text-ink group-hover:text-teal">Core principles, two ways</span></a>
+        <a href="#module-03" class="flex items-baseline gap-3 group focus-ring rounded"><span class="module-index text-lg text-teal">03</span><span class="text-ink group-hover:text-teal">Hardening the architecture</span></a>
+        <a href="#module-04" class="flex items-baseline gap-3 group focus-ring rounded"><span class="module-index text-lg text-teal">04</span><span class="text-ink group-hover:text-teal">Where AI changes the threat model</span></a>
+        <a href="#module-05" class="flex items-baseline gap-3 group focus-ring rounded"><span class="module-index text-lg text-teal">05</span><span class="text-ink group-hover:text-teal">Benchmarks, checklist, and tooling</span></a>
+        <a href="#module-06" class="flex items-baseline gap-3 group focus-ring rounded"><span class="module-index text-lg text-teal">06</span><span class="text-ink group-hover:text-teal">Shifting left: workflow automation</span></a>
+        <a href="#module-07" class="flex items-baseline gap-3 group focus-ring rounded"><span class="module-index text-lg text-teal">07</span><span class="text-ink group-hover:text-teal">Compliance dashboard component</span></a>
+        <a href="#module-08" class="flex items-baseline gap-3 group focus-ring rounded"><span class="module-index text-lg text-teal">08</span><span class="text-ink group-hover:text-teal">Hands-on lab exercises</span></a>
+        <a href="#module-09" class="flex items-baseline gap-3 group focus-ring rounded"><span class="module-index text-lg text-teal">09</span><span class="text-ink group-hover:text-teal">Test your understanding</span></a>
+      </div>
+    </section>
+
+    <!-- GLOSSARY -->
+    <section id="glossary" class="py-16 border-b border-line scroll-mt-20">
+      <h2 class="text-2xl md:text-3xl font-semibold text-ink mb-4">Glossary: ten terms you'll see everywhere</h2>
+      <p class="text-subink max-w-2xl mb-8 leading-relaxed">
+        A quick visual pass before the deep dive. Keep this open in another tab — look a term up here the first time it feels unfamiliar, whether you're twelve or forty-two.
+      </p>
+      <div class="grid sm:grid-cols-2 gap-4">
+
+        <div class="p-4 border border-line rounded-md flex items-start gap-3">
+          <div class="h-10 w-10 rounded-full bg-tealsoft flex items-center justify-center flex-shrink-0">
+            <svg viewBox="0 0 24 24" class="h-5 w-5" fill="none" stroke="#1D4E4B" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="9" width="18" height="6" rx="3"/><line x1="12" y1="9" x2="12" y2="15"/></svg>
+          </div>
+          <div><p class="font-medium text-ink text-sm mb-1">Pod</p><p class="text-subink text-sm">The smallest thing Kubernetes runs — usually one container, sometimes a couple that share resources.</p></div>
+        </div>
+
+        <div class="p-4 border border-line rounded-md flex items-start gap-3">
+          <div class="h-10 w-10 rounded-full bg-tealsoft flex items-center justify-center flex-shrink-0">
+            <svg viewBox="0 0 24 24" class="h-5 w-5" fill="none" stroke="#1D4E4B" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><rect x="2" y="2" width="20" height="20" rx="3" stroke-dasharray="2 2"/><rect x="6" y="9" width="5" height="5" rx="1" fill="#1D4E4B" stroke="none"/><rect x="13" y="9" width="5" height="5" rx="1" fill="#1D4E4B" stroke="none"/></svg>
+          </div>
+          <div><p class="font-medium text-ink text-sm mb-1">Namespace</p><p class="text-subink text-sm">A labeled area inside the cluster that keeps one team's or app's stuff separate from another's.</p></div>
+        </div>
+
+        <div class="p-4 border border-line rounded-md flex items-start gap-3">
+          <div class="h-10 w-10 rounded-full bg-tealsoft flex items-center justify-center flex-shrink-0">
+            <svg viewBox="0 0 24 24" class="h-5 w-5" fill="none" stroke="#1D4E4B" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M12 2 L20 5 V11 C20 16 16.5 20 12 22 C7.5 20 4 16 4 11 V5 Z"/><polyline points="8,12 11,15 16,9"/></svg>
+          </div>
+          <div><p class="font-medium text-ink text-sm mb-1">RBAC</p><p class="text-subink text-sm">Role-Based Access Control — the rulebook for who's allowed to do what in the cluster.</p></div>
+        </div>
+
+        <div class="p-4 border border-line rounded-md flex items-start gap-3">
+          <div class="h-10 w-10 rounded-full bg-tealsoft flex items-center justify-center flex-shrink-0">
+            <svg viewBox="0 0 24 24" class="h-5 w-5" fill="none" stroke="#1D4E4B" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><circle cx="5" cy="12" r="3"/><circle cx="19" cy="12" r="3"/><line x1="12" y1="4" x2="12" y2="20" stroke-width="2.4"/></svg>
+          </div>
+          <div><p class="font-medium text-ink text-sm mb-1">NetworkPolicy</p><p class="text-subink text-sm">A rule that says which pods are allowed to talk to which other pods.</p></div>
+        </div>
+
+        <div class="p-4 border border-line rounded-md flex items-start gap-3">
+          <div class="h-10 w-10 rounded-full bg-tealsoft flex items-center justify-center flex-shrink-0">
+            <svg viewBox="0 0 24 24" class="h-5 w-5" fill="none" stroke="#1D4E4B" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M3 4 H21 L14 12 V19 L10 21 V12 Z"/></svg>
+          </div>
+          <div><p class="font-medium text-ink text-sm mb-1">Admission controller</p><p class="text-subink text-sm">A checkpoint that inspects a request and can reject or modify it before it's saved.</p></div>
+        </div>
+
+        <div class="p-4 border border-line rounded-md flex items-start gap-3">
+          <div class="h-10 w-10 rounded-full bg-tealsoft flex items-center justify-center flex-shrink-0">
+            <svg viewBox="0 0 24 24" class="h-5 w-5"><rect x="4" y="15" width="4" height="6" fill="#A8412B"/><rect x="10" y="10" width="4" height="11" fill="#8A5A12"/><rect x="16" y="4" width="4" height="17" fill="#1D4E4B"/></svg>
+          </div>
+          <div><p class="font-medium text-ink text-sm mb-1">Pod Security Standards</p><p class="text-subink text-sm">Three preset safety levels for pods — Privileged, Baseline, and Restricted — from loosest to strictest.</p></div>
+        </div>
+
+        <div class="p-4 border border-line rounded-md flex items-start gap-3">
+          <div class="h-10 w-10 rounded-full bg-tealsoft flex items-center justify-center flex-shrink-0">
+            <svg viewBox="0 0 24 24" class="h-5 w-5" fill="none" stroke="#1D4E4B" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><rect x="7" y="11" width="10" height="8" rx="1.5"/><path d="M9 11 V8 a3 3 0 0 1 6 0 v3"/><polygon points="2,10 5,12 2,14" fill="#1D4E4B" stroke="none"/><polygon points="22,10 19,12 22,14" fill="#1D4E4B" stroke="none"/></svg>
+          </div>
+          <div><p class="font-medium text-ink text-sm mb-1">mTLS</p><p class="text-subink text-sm">Mutual TLS — both sides of a connection prove who they are, not just one.</p></div>
+        </div>
+
+        <div class="p-4 border border-line rounded-md flex items-start gap-3">
+          <div class="h-10 w-10 rounded-full bg-tealsoft flex items-center justify-center flex-shrink-0">
+            <svg viewBox="0 0 24 24" class="h-5 w-5" fill="none" stroke="#1D4E4B" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><rect x="2" y="9" width="5" height="5" rx="1"/><rect x="9.5" y="9" width="5" height="5" rx="1"/><rect x="17" y="9" width="5" height="5" rx="1"/></svg>
+          </div>
+          <div><p class="font-medium text-ink text-sm mb-1">DaemonSet</p><p class="text-subink text-sm">A workload guaranteed to run one copy on every node — how tools like Falco watch the whole cluster.</p></div>
+        </div>
+
+        <div class="p-4 border border-line rounded-md flex items-start gap-3">
+          <div class="h-10 w-10 rounded-full bg-tealsoft flex items-center justify-center flex-shrink-0">
+            <svg viewBox="0 0 24 24" class="h-5 w-5" fill="none" stroke="#1D4E4B" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M12 3 L22 20 H2 Z"/><line x1="12" y1="9" x2="12" y2="14"/><circle cx="12" cy="17" r="1" fill="#1D4E4B" stroke="none"/></svg>
+          </div>
+          <div><p class="font-medium text-ink text-sm mb-1">CVE</p><p class="text-subink text-sm">Common Vulnerabilities and Exposures — the public ID number given to a known security flaw.</p></div>
+        </div>
+
+        <div class="p-4 border border-line rounded-md flex items-start gap-3">
+          <div class="h-10 w-10 rounded-full bg-tealsoft flex items-center justify-center flex-shrink-0">
+            <svg viewBox="0 0 24 24" class="h-5 w-5" fill="none" stroke="#1D4E4B" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><circle cx="7" cy="12" r="4"/><line x1="11" y1="12" x2="21" y2="12"/><line x1="17" y1="12" x2="17" y2="16"/><line x1="21" y1="12" x2="21" y2="15"/></svg>
+          </div>
+          <div><p class="font-medium text-ink text-sm mb-1">OIDC</p><p class="text-subink text-sm">A standard way to prove identity that lets a pipeline or pod get a short-lived credential instead of a permanent password.</p></div>
+        </div>
+
+      </div>
+    </section>
+
+    <!-- COMPLIANCE -->
+    <section id="compliance" class="py-16 border-b border-line scroll-mt-20">
+      <h2 class="text-2xl md:text-3xl font-semibold text-ink mb-4">Compliance framework prioritization</h2>
+      <p class="text-subink max-w-2xl mb-3 leading-relaxed">
+        Across client engagements, prioritize by how often a framework applies and how directly Kubernetes controls satisfy it — not by which one sounds most serious. SOC 2 and PCI-DSS show up in nearly every engagement with hard audit deadlines; HIPAA is just as serious but scoped to whichever clients actually handle PHI.
+      </p>
+      <p class="text-xs text-subink max-w-2xl mb-8 leading-relaxed">
+        This is a control-mapping reference for engineering prioritization, not a certification or legal opinion — confirm actual audit scope with a qualified compliance officer or external auditor before relying on it.
+      </p>
+      <div class="overflow-x-auto border border-line rounded-lg">
+        <table class="w-full text-sm text-left border-collapse">
+          <thead>
+            <tr class="bg-surface text-subink">
+              <th class="p-4 font-medium border-b border-line w-1/6">Framework</th>
+              <th class="p-4 font-medium border-b border-line w-1/4">Applies when</th>
+              <th class="p-4 font-medium border-b border-line w-2/5">Kubernetes controls it depends on</th>
+              <th class="p-4 font-medium border-b border-line w-1/6">Priority</th>
+            </tr>
+          </thead>
+          <tbody class="divide-y divide-line">
+            <tr>
+              <td class="p-4 font-medium text-ink align-top">SOC 2 Type II</td>
+              <td class="p-4 text-subink align-top">Almost every client under a contractual security commitment</td>
+              <td class="p-4 text-subink align-top">Audit logging with retention, GitOps-based change tracking, periodic RBAC access reviews</td>
+              <td class="p-4 align-top"><span class="inline-block text-xs font-medium px-2 py-1 rounded bg-rustsoft text-rust">Tier 1</span></td>
+            </tr>
+            <tr>
+              <td class="p-4 font-medium text-ink align-top">PCI-DSS v4.0</td>
+              <td class="p-4 text-subink align-top">Client processes, stores, or transmits cardholder data</td>
+              <td class="p-4 text-subink align-top">Namespace-level tenant isolation, default-deny NetworkPolicies, etcd encryption at rest, quarterly access reviews</td>
+              <td class="p-4 align-top"><span class="inline-block text-xs font-medium px-2 py-1 rounded bg-rustsoft text-rust">Tier 1</span></td>
+            </tr>
+            <tr>
+              <td class="p-4 font-medium text-ink align-top">HIPAA Security Rule</td>
+              <td class="p-4 text-subink align-top">Client handles Protected Health Information</td>
+              <td class="p-4 text-subink align-top">Runtime mutation detection (eBPF), least-privilege RBAC, encrypted node-to-node transit via mTLS, pod-level PHI access trail</td>
+              <td class="p-4 align-top"><span class="inline-block text-xs font-medium px-2 py-1 rounded bg-ambersoft text-amber">Tier 2</span></td>
+            </tr>
+          </tbody>
+        </table>
+      </div>
+      <div class="mt-8 flex gap-4 p-5 bg-tealsoft border border-teal/20 rounded-lg">
+        <span class="flex-shrink-0 text-teal font-semibold text-sm">Remember</span>
+        <ul class="text-sm text-ink space-y-1.5 list-disc pl-4">
+          <li>SOC 2 and PCI-DSS show up in almost every client project — treat them as the default, not the exception.</li>
+          <li>HIPAA only matters when a client's app actually touches real patient health data.</li>
+          <li>A written policy without a matching Kubernetes setting behind it doesn't count during an audit.</li>
+        </ul>
+      </div>
+    </section>
+
+    <!-- MODULE 1 -->
+    <section id="module-01" class="py-16 border-b border-line scroll-mt-20">
+      <div class="flex items-baseline gap-4 mb-8">
+        <span class="module-index text-3xl text-teal">01</span>
+        <h2 class="text-2xl md:text-3xl font-semibold text-ink">Architectural and operational foundations</h2>
+      </div>
+      <p class="text-subink max-w-2xl mb-8 leading-relaxed">
+        You already have the shape of it: a brain and a set of hands. Now let's zoom in on how they actually talk to each other, piece by piece — pick whichever explanation below gets a new teammate or a non-technical stakeholder oriented fastest.
+      </p>
+
+      <div class="grid md:grid-cols-2 gap-px bg-line border border-line rounded-lg overflow-hidden mb-10">
+        <div class="bg-white p-7">
+          <h3 class="text-sm font-medium text-amber mb-4">In plain terms</h3>
+          <p class="text-ink leading-relaxed">
+            Picture a busy airport. The <strong>control plane</strong> is the tower: it doesn't fly anywhere, but it watches every plane, decides who lands where, and reroutes traffic the instant something goes wrong. The <strong>worker nodes</strong> are the airplanes — each one carries passengers (your application) along a route the tower assigned. If a plane breaks down mid-flight, the tower doesn't wait around; it dispatches a replacement so the passengers still arrive.
+          </p>
+        </div>
+        <div class="bg-white p-7">
+          <h3 class="text-sm font-medium text-teal mb-4">In engineering terms</h3>
+          <p class="text-ink leading-relaxed">
+            Kubernetes is a distributed, declarative state engine. <code class="mono text-sm bg-surface px-1 rounded">etcd</code> holds the cluster's desired and observed state as a consistent key-value store. The <code class="mono text-sm bg-surface px-1 rounded">kube-apiserver</code> is the only component that talks to <code class="mono text-sm bg-surface px-1 rounded">etcd</code> directly, and it authenticates, authorizes, and admits every request that touches cluster state. The <code class="mono text-sm bg-surface px-1 rounded">kube-scheduler</code> and <code class="mono text-sm bg-surface px-1 rounded">controller-manager</code> reconcile desired state against reality. On each node, the <code class="mono text-sm bg-surface px-1 rounded">kubelet</code> watches the API server for pods assigned to it and drives the container runtime through the CRI to make that state real.
+          </p>
+        </div>
+      </div>
+
+      <!-- Cluster topology diagram -->
+      <h3 class="text-lg font-semibold text-ink mb-4">Cluster topology</h3>
+      <div class="border border-line rounded-lg p-4 mb-10 overflow-x-auto">
+        <svg viewBox="0 0 900 320" class="w-full min-w-[700px]" role="img" aria-label="Diagram of Kubernetes control plane connected to two worker nodes">
+          <rect x="20" y="20" width="860" height="120" rx="10" fill="#F6F7F9" stroke="#E2E5EA"/>
+          <text x="40" y="45" fill="#4B5563" font-size="13" font-family="Inter">Control plane</text>
+          <g font-family="IBM Plex Mono" font-size="12">
+            <rect x="40" y="58" width="150" height="60" rx="6" fill="#FFFFFF" stroke="#1D4E4B"/>
+            <text x="115" y="83" fill="#14181F" text-anchor="middle">kube-apiserver</text>
+            <text x="115" y="100" fill="#4B5563" text-anchor="middle" font-size="10">authn / authz / admit</text>
+
+            <rect x="215" y="58" width="130" height="60" rx="6" fill="#FFFFFF" stroke="#1D4E4B"/>
+            <text x="280" y="83" fill="#14181F" text-anchor="middle">etcd</text>
+            <text x="280" y="100" fill="#4B5563" text-anchor="middle" font-size="10">cluster state store</text>
+
+            <rect x="370" y="58" width="150" height="60" rx="6" fill="#FFFFFF" stroke="#1D4E4B"/>
+            <text x="445" y="83" fill="#14181F" text-anchor="middle">kube-scheduler</text>
+            <text x="445" y="100" fill="#4B5563" text-anchor="middle" font-size="10">assigns pods to nodes</text>
+
+            <rect x="545" y="58" width="170" height="60" rx="6" fill="#FFFFFF" stroke="#1D4E4B"/>
+            <text x="630" y="83" fill="#14181F" text-anchor="middle">controller-manager</text>
+            <text x="630" y="100" fill="#4B5563" text-anchor="middle" font-size="10">reconciliation loops</text>
+
+            <rect x="740" y="58" width="120" height="60" rx="6" fill="#FFFFFF" stroke="#1D4E4B"/>
+            <text x="800" y="83" fill="#14181F" text-anchor="middle">cloud-ctrl-mgr</text>
+            <text x="800" y="100" fill="#4B5563" text-anchor="middle" font-size="10">cloud integrations</text>
+          </g>
+
+          <line x1="115" y1="118" x2="115" y2="220" stroke="#A8412B" stroke-width="1.5" marker-end="url(#arrow)"/>
+          <line x1="785" y1="118" x2="785" y2="220" stroke="#A8412B" stroke-width="1.5" marker-end="url(#arrow)"/>
+
+          <rect x="20" y="220" width="410" height="80" rx="10" fill="#FFFFFF" stroke="#E2E5EA"/>
+          <text x="40" y="240" fill="#4B5563" font-size="13">Worker node A</text>
+          <g font-family="IBM Plex Mono" font-size="11">
+            <rect x="40" y="250" width="100" height="36" rx="5" fill="#E8F0EF" stroke="#1D4E4B"/>
+            <text x="90" y="272" fill="#14181F" text-anchor="middle">kubelet</text>
+            <rect x="150" y="250" width="110" height="36" rx="5" fill="#E8F0EF" stroke="#1D4E4B"/>
+            <text x="205" y="272" fill="#14181F" text-anchor="middle">kube-proxy</text>
+            <rect x="270" y="250" width="150" height="36" rx="5" fill="#E8F0EF" stroke="#1D4E4B"/>
+            <text x="345" y="272" fill="#14181F" text-anchor="middle">containerd + pods</text>
+          </g>
+
+          <rect x="470" y="220" width="410" height="80" rx="10" fill="#FFFFFF" stroke="#E2E5EA"/>
+          <text x="490" y="240" fill="#4B5563" font-size="13">Worker node B</text>
+          <g font-family="IBM Plex Mono" font-size="11">
+            <rect x="490" y="250" width="100" height="36" rx="5" fill="#E8F0EF" stroke="#1D4E4B"/>
+            <text x="540" y="272" fill="#14181F" text-anchor="middle">kubelet</text>
+            <rect x="600" y="250" width="110" height="36" rx="5" fill="#E8F0EF" stroke="#1D4E4B"/>
+            <text x="655" y="272" fill="#14181F" text-anchor="middle">kube-proxy</text>
+            <rect x="720" y="250" width="150" height="36" rx="5" fill="#E8F0EF" stroke="#1D4E4B"/>
+            <text x="795" y="272" fill="#14181F" text-anchor="middle">containerd + pods</text>
+          </g>
+          <defs>
+            <marker id="arrow" markerWidth="8" markerHeight="8" refX="4" refY="4" orient="auto">
+              <path d="M0,0 L8,4 L0,8 Z" fill="#A8412B"/>
+            </marker>
+          </defs>
+        </svg>
+      </div>
+
+      <!-- Request lifecycle diagram -->
+      <h3 class="text-lg font-semibold text-ink mb-4">A single request's lifecycle</h3>
+      <div class="border border-line rounded-lg p-4 mb-10 overflow-x-auto">
+        <svg viewBox="0 0 940 140" class="w-full min-w-[760px]" role="img" aria-label="Diagram showing a request passing through authentication, authorization, admission control, then etcd">
+          <g font-family="Inter" font-size="12">
+            <rect x="10" y="40" width="150" height="60" rx="8" fill="#FFFFFF" stroke="#E2E5EA"/>
+            <text x="85" y="75" fill="#14181F" text-anchor="middle">kubectl apply</text>
+
+            <rect x="200" y="40" width="150" height="60" rx="8" fill="#FBF2E1" stroke="#8A5A12"/>
+            <text x="275" y="70" fill="#14181F" text-anchor="middle">Authentication</text>
+            <text x="275" y="86" fill="#4B5563" font-size="10" text-anchor="middle">who are you?</text>
+
+            <rect x="390" y="40" width="150" height="60" rx="8" fill="#FBF2E1" stroke="#8A5A12"/>
+            <text x="465" y="70" fill="#14181F" text-anchor="middle">Authorization</text>
+            <text x="465" y="86" fill="#4B5563" font-size="10" text-anchor="middle">RBAC: allowed?</text>
+
+            <rect x="580" y="40" width="170" height="60" rx="8" fill="#FBF2E1" stroke="#8A5A12"/>
+            <text x="665" y="70" fill="#14181F" text-anchor="middle">Admission control</text>
+            <text x="665" y="86" fill="#4B5563" font-size="10" text-anchor="middle">mutate / validate</text>
+
+            <rect x="785" y="40" width="150" height="60" rx="8" fill="#E8F0EF" stroke="#1D4E4B"/>
+            <text x="860" y="75" fill="#14181F" text-anchor="middle">Persisted to etcd</text>
+          </g>
+          <g stroke="#4B5563" stroke-width="1.5" marker-end="url(#arrow2)">
+            <line x1="160" y1="70" x2="198" y2="70"/>
+            <line x1="350" y1="70" x2="388" y2="70"/>
+            <line x1="540" y1="70" x2="578" y2="70"/>
+            <line x1="750" y1="70" x2="783" y2="70"/>
+          </g>
+          <defs>
+            <marker id="arrow2" markerWidth="8" markerHeight="8" refX="4" refY="4" orient="auto">
+              <path d="M0,0 L8,4 L0,8 Z" fill="#4B5563"/>
+            </marker>
+          </defs>
+        </svg>
+        <p class="text-xs text-subink mt-2">A request rejected at any stage never reaches etcd — each stage is an independent security checkpoint, not a formality.</p>
+      </div>
+
+      <h3 class="text-lg font-semibold text-ink mb-4">Component reference</h3>
+      <div class="overflow-x-auto border border-line rounded-lg">
+        <table class="w-full text-sm text-left border-collapse">
+          <thead>
+            <tr class="bg-surface text-subink">
+              <th class="p-3 font-medium border-b border-line w-1/6">Component</th>
+              <th class="p-3 font-medium border-b border-line w-1/6">Runs on</th>
+              <th class="p-3 font-medium border-b border-line w-2/6">Responsibility</th>
+              <th class="p-3 font-medium border-b border-line w-2/6">If it's compromised</th>
+            </tr>
+          </thead>
+          <tbody class="divide-y divide-line">
+            <tr><td class="p-3 font-medium text-ink align-top">kube-apiserver</td><td class="p-3 text-subink align-top">Control plane</td><td class="p-3 text-subink align-top">Single entry point for every cluster read and write</td><td class="p-3 text-subink align-top">Full cluster compromise — this is the highest-value target</td></tr>
+            <tr><td class="p-3 font-medium text-ink align-top">etcd</td><td class="p-3 text-subink align-top">Control plane</td><td class="p-3 text-subink align-top">Stores all cluster state, including Secrets</td><td class="p-3 text-subink align-top">Every Secret in the cluster is exposed if unencrypted</td></tr>
+            <tr><td class="p-3 font-medium text-ink align-top">kube-scheduler</td><td class="p-3 text-subink align-top">Control plane</td><td class="p-3 text-subink align-top">Decides which node runs each pod</td><td class="p-3 text-subink align-top">Attacker can steer workloads onto a node they already control</td></tr>
+            <tr><td class="p-3 font-medium text-ink align-top">controller-manager</td><td class="p-3 text-subink align-top">Control plane</td><td class="p-3 text-subink align-top">Runs reconciliation loops (Deployments, ReplicaSets, and so on)</td><td class="p-3 text-subink align-top">Attacker can silently scale, delete, or recreate workloads</td></tr>
+            <tr><td class="p-3 font-medium text-ink align-top">kubelet</td><td class="p-3 text-subink align-top">Each node</td><td class="p-3 text-subink align-top">Starts and supervises containers assigned to its node</td><td class="p-3 text-subink align-top">Node-level compromise, limited to that node's workloads</td></tr>
+            <tr><td class="p-3 font-medium text-ink align-top">kube-proxy</td><td class="p-3 text-subink align-top">Each node</td><td class="p-3 text-subink align-top">Implements Service networking rules</td><td class="p-3 text-subink align-top">Traffic can be redirected or intercepted on that node</td></tr>
+          </tbody>
+        </table>
+      </div>
+      <div class="mt-8 flex gap-4 p-5 bg-tealsoft border border-teal/20 rounded-lg">
+        <span class="flex-shrink-0 text-teal font-semibold text-sm">Remember</span>
+        <ul class="text-sm text-ink space-y-1.5 list-disc pl-4">
+          <li>The control plane decides what should happen; the worker nodes do the actual work.</li>
+          <li>etcd is the cluster's memory — if it leaks, every Secret in the cluster leaks with it.</li>
+          <li>Every single request passes three checkpoints before anything is saved: who are you, are you allowed, does it pass the rules.</li>
+        </ul>
+      </div>
+    </section>
+
+    <!-- MODULE 2 -->
+    <section id="module-02" class="py-16 border-b border-line scroll-mt-20">
+      <div class="flex items-baseline gap-4 mb-8">
+        <span class="module-index text-3xl text-teal">02</span>
+        <h2 class="text-2xl md:text-3xl font-semibold text-ink">Core principles, two ways</h2>
+      </div>
+      <p class="text-subink max-w-2xl mb-8 leading-relaxed">
+        Every hardening decision in this manual traces back to one of four ideas: trust nothing by default, expect any single layer to fail, grant the least access that works, and never patch a running container.
+      </p>
+
+      <div class="space-y-px bg-line border border-line rounded-lg overflow-hidden mb-10">
+        <div class="bg-white p-7">
+          <h3 class="text-lg font-semibold text-ink mb-4">Zero trust networking</h3>
+          <div class="grid md:grid-cols-2 gap-8">
+            <div><p class="text-sm text-amber mb-2">In plain terms</p><p class="text-subink leading-relaxed">Even inside the school building, every classroom door stays locked. Being in the hallway doesn't get you into a room — you show your ID at each door, every time.</p></div>
+            <div><p class="text-sm text-teal mb-2">In engineering terms</p><p class="text-subink leading-relaxed">Assume the network perimeter is already breached. Default-deny all pod-to-pod traffic with NetworkPolicies, then explicitly allow only what's needed. Authenticate service-to-service calls cryptographically with mTLS rather than relying on network location.</p></div>
+          </div>
+        </div>
+        <div class="bg-white p-7">
+          <h3 class="text-lg font-semibold text-ink mb-4">Defense in depth — the 4Cs</h3>
+          <div class="grid md:grid-cols-2 gap-8">
+            <div><p class="text-sm text-amber mb-2">In plain terms</p><p class="text-subink leading-relaxed">You don't protect a treasure chest with one lock. You lock the chest, put it in a locked room, inside a locked castle, behind a moat. A thief who beats one barrier still has three more ahead.</p></div>
+            <div><p class="text-sm text-teal mb-2">In engineering terms</p><p class="text-subink leading-relaxed">Security is enforced independently at four layers — Cloud, Cluster, Container, and Code. A breach at one layer should never cascade into the rest.</p></div>
+          </div>
+        </div>
+        <div class="bg-white p-7">
+          <h3 class="text-lg font-semibold text-ink mb-4">Least privilege</h3>
+          <div class="grid md:grid-cols-2 gap-8">
+            <div><p class="text-sm text-amber mb-2">In plain terms</p><p class="text-subink leading-relaxed">A hotel keycard opens your room and the gym — not every room in the building. You're given exactly the access your stay requires, nothing more.</p></div>
+            <div><p class="text-sm text-teal mb-2">In engineering terms</p><p class="text-subink leading-relaxed">Every ServiceAccount, Role, and human identity gets the minimum verbs and resources it needs, scoped to a namespace wherever possible. Wildcard RBAC rules (<code class="mono text-xs">resources: ["*"]</code>) are a standing liability, not a convenience.</p></div>
+          </div>
+        </div>
+        <div class="bg-white p-7">
+          <h3 class="text-lg font-semibold text-ink mb-4">Immutable infrastructure</h3>
+          <div class="grid md:grid-cols-2 gap-8">
+            <div><p class="text-sm text-amber mb-2">In plain terms</p><p class="text-subink leading-relaxed">If a vending machine breaks, you don't repair it on the sidewalk — you swap in a working one and send the broken one back to the factory.</p></div>
+            <div><p class="text-sm text-teal mb-2">In engineering terms</p><p class="text-subink leading-relaxed">Never patch a running container. Rebuild the image, push it through the same scanned and signed pipeline, and roll it out as a new revision. Read-only root filesystems (<code class="mono text-xs">readOnlyRootFilesystem: true</code>) make in-place tampering structurally harder.</p></div>
+          </div>
+        </div>
+      </div>
+
+      <h3 class="text-lg font-semibold text-ink mb-4">The 4Cs, nested</h3>
+      <div class="border border-line rounded-lg p-4 mb-10 flex justify-center">
+        <svg viewBox="0 0 420 320" class="w-full max-w-md" role="img" aria-label="Concentric diagram showing Cloud, Cluster, Container, and Code as nested layers">
+          <circle cx="210" cy="160" r="150" fill="#F6F7F9" stroke="#E2E5EA"/>
+          <circle cx="210" cy="160" r="112" fill="#FFFFFF" stroke="#E2E5EA"/>
+          <circle cx="210" cy="160" r="74" fill="#E8F0EF" stroke="#1D4E4B"/>
+          <circle cx="210" cy="160" r="36" fill="#1D4E4B"/>
+          <text x="210" y="45" text-anchor="middle" font-family="Inter" font-size="13" fill="#4B5563">Cloud</text>
+          <text x="210" y="82" text-anchor="middle" font-family="Inter" font-size="13" fill="#4B5563">Cluster</text>
+          <text x="210" y="120" text-anchor="middle" font-family="Inter" font-size="13" fill="#14181F">Container</text>
+          <text x="210" y="164" text-anchor="middle" font-family="Inter" font-size="13" fill="#FFFFFF" font-weight="600">Code</text>
+        </svg>
+      </div>
+
+      <div class="overflow-x-auto border border-line rounded-lg">
+        <table class="w-full text-sm text-left border-collapse">
+          <thead><tr class="bg-surface text-subink"><th class="p-3 font-medium border-b border-line w-1/5">Layer</th><th class="p-3 font-medium border-b border-line w-4/5">A concrete control at this layer</th></tr></thead>
+          <tbody class="divide-y divide-line">
+            <tr><td class="p-3 font-medium text-ink align-top">Cloud</td><td class="p-3 text-subink align-top">Private control plane endpoint; IAM roles scoped per workload rather than a shared node identity</td></tr>
+            <tr><td class="p-3 font-medium text-ink align-top">Cluster</td><td class="p-3 text-subink align-top">RBAC least privilege, encrypted etcd, audit logging shipped off-cluster</td></tr>
+            <tr><td class="p-3 font-medium text-ink align-top">Container</td><td class="p-3 text-subink align-top">Minimal base image, non-root user, read-only root filesystem, dropped Linux capabilities</td></tr>
+            <tr><td class="p-3 font-medium text-ink align-top">Code</td><td class="p-3 text-subink align-top">Dependency scanning, SAST in CI, secrets never hardcoded in source</td></tr>
+          </tbody>
+        </table>
+      </div>
+      <div class="mt-8 flex gap-4 p-5 bg-tealsoft border border-teal/20 rounded-lg">
+        <span class="flex-shrink-0 text-teal font-semibold text-sm">Remember</span>
+        <ul class="text-sm text-ink space-y-1.5 list-disc pl-4">
+          <li>Trust nothing by default — prove identity every time, not just once at the front door.</li>
+          <li>Never rely on one wall. Stack independent layers: Cloud, Cluster, Container, Code.</li>
+          <li>Give every identity the smallest set of keys it needs — nothing extra, ever.</li>
+          <li>Don't repair a broken container. Replace it with a new, freshly scanned one.</li>
+        </ul>
+      </div>
+    </section>
+
+    <!-- MODULE 3 -->
+    <section id="module-03" class="py-16 border-b border-line scroll-mt-20">
+      <div class="flex items-baseline gap-4 mb-8">
+        <span class="module-index text-3xl text-teal">03</span>
+        <h2 class="text-2xl md:text-3xl font-semibold text-ink">Hardening the architecture</h2>
+      </div>
+      <p class="text-subink max-w-2xl mb-8 leading-relaxed">
+        A vanilla cluster is optimized for getting started, not for staying safe. Each row below is a decision you make once, deliberately, before workloads go live.
+      </p>
+
+      <div class="overflow-x-auto border border-line rounded-lg mb-10">
+        <table class="w-full text-sm text-left border-collapse">
+          <thead>
+            <tr class="bg-surface text-subink">
+              <th class="p-4 font-medium border-b border-line w-1/6">Area</th>
+              <th class="p-4 font-medium border-b border-line w-5/12">Insecure default</th>
+              <th class="p-4 font-medium border-b border-line w-5/12">Production hardened state</th>
+            </tr>
+          </thead>
+          <tbody class="divide-y divide-line">
+            <tr><td class="p-4 font-medium text-ink align-top">Control plane</td><td class="p-4 text-subink align-top">API server accepts anonymous requests</td><td class="p-4 text-subink align-top">Set <code class="mono text-xs">--anonymous-auth=false</code>; restrict the API server endpoint to a private network or allow-listed CIDRs</td></tr>
+            <tr><td class="p-4 font-medium text-ink align-top">etcd</td><td class="p-4 text-subink align-top">Secrets stored as plaintext on disk</td><td class="p-4 text-subink align-top">Enable a KMS provider for envelope encryption at rest; restrict etcd's network access to control plane nodes only</td></tr>
+            <tr><td class="p-4 font-medium text-ink align-top">Network</td><td class="p-4 text-subink align-top">All pods can reach all pods, in every namespace</td><td class="p-4 text-subink align-top">Default-deny NetworkPolicy per namespace, then allow-list required paths; add a service mesh for mTLS where volume justifies it</td></tr>
+            <tr><td class="p-4 font-medium text-ink align-top">Node and pod</td><td class="p-4 text-subink align-top">Containers run as root, no admission checks on privilege escalation</td><td class="p-4 text-subink align-top">Replace deprecated PSPs with Pod Security Standards — enforce <code class="mono text-xs">restricted</code> in application namespaces, <code class="mono text-xs">baseline</code> as an interim step</td></tr>
+            <tr><td class="p-4 font-medium text-ink align-top">Identity and access</td><td class="p-4 text-subink align-top">Broad ClusterRoleBindings and long-lived static tokens</td><td class="p-4 text-subink align-top">Namespace-scoped least-privilege RBAC; OIDC for human identity; short-lived, audience-bound tokens</td></tr>
+            <tr><td class="p-4 font-medium text-ink align-top">Secrets management</td><td class="p-4 text-subink align-top">Secrets committed to Git or passed as plain environment variables</td><td class="p-4 text-subink align-top">External secrets manager (Vault, cloud KMS) synced via an operator; mount as files, not env vars, to limit accidental logging</td></tr>
+            <tr><td class="p-4 font-medium text-ink align-top">Supply chain</td><td class="p-4 text-subink align-top">Any image from any registry can be deployed</td><td class="p-4 text-subink align-top">Admission-time enforcement of signed images (Sigstore/Cosign) from an allow-listed registry only</td></tr>
+            <tr><td class="p-4 font-medium text-ink align-top">Audit and observability</td><td class="p-4 text-subink align-top">Audit logging disabled or kept only on the node</td><td class="p-4 text-subink align-top">Audit policy capturing Metadata level for all requests, RequestResponse for Secrets and RBAC changes, shipped to immutable off-cluster storage</td></tr>
+          </tbody>
+        </table>
+      </div>
+
+      <h3 class="text-lg font-semibold text-ink mb-4">Hardening by deployment model</h3>
+      <p class="text-subink max-w-2xl mb-5 leading-relaxed">The controls above apply everywhere. Where you host the cluster changes how you implement identity and network hardening specifically.</p>
+      <div class="overflow-x-auto border border-line rounded-lg mb-10">
+        <table class="w-full text-sm text-left border-collapse">
+          <thead>
+            <tr class="bg-surface text-subink">
+              <th class="p-4 font-medium border-b border-line w-1/6">Deployment model</th>
+              <th class="p-4 font-medium border-b border-line w-5/12">Insecure default state</th>
+              <th class="p-4 font-medium border-b border-line w-5/12">Production hardened state</th>
+            </tr>
+          </thead>
+          <tbody class="divide-y divide-line">
+            <tr>
+              <td class="p-4 font-medium text-ink align-top">Self-hosted (vanilla)</td>
+              <td class="p-4 text-subink align-top">API server reachable from any network; etcd stored unencrypted on disk; nodes managed with ad hoc, undocumented configuration</td>
+              <td class="p-4 text-subink align-top">Bind the API server to a private network or VPN; enable a KMS provider for etcd envelope encryption; run kube-bench in CI and on a recurring schedule against every node</td>
+            </tr>
+            <tr>
+              <td class="p-4 font-medium text-ink align-top">Google GKE</td>
+              <td class="p-4 text-subink align-top">Workload Identity Federation not yet enabled on Standard node pools; public control plane endpoint with no authorized-networks restriction</td>
+              <td class="p-4 text-subink align-top">Enable Workload Identity Federation for GKE on every node pool (Autopilot has it on by default) so pods authenticate to Google Cloud APIs without service account key files; run a private cluster with an authorized-networks allow-list</td>
+            </tr>
+            <tr>
+              <td class="p-4 font-medium text-ink align-top">AWS EKS</td>
+              <td class="p-4 text-subink align-top">Public cluster endpoint; pods inherit the EC2 node's IAM instance profile permissions by default</td>
+              <td class="p-4 text-subink align-top">Restrict the endpoint to a private VPC or security-group allow-list; adopt EKS Pod Identity for new workloads on EC2 nodes — simpler trust policy than OIDC federation — and keep IRSA only for Fargate workloads or clusters still mid-migration</td>
+            </tr>
+          </tbody>
+        </table>
+      </div>
+
+      <h3 class="text-lg font-semibold text-ink mb-4">Pod Security Standards spectrum</h3>
+      <div class="border border-line rounded-lg p-6 mb-10">
+        <svg viewBox="0 0 900 90" class="w-full" role="img" aria-label="Spectrum from Privileged to Baseline to Restricted">
+          <line x1="20" y1="45" x2="880" y2="45" stroke="#E2E5EA" stroke-width="6"/>
+          <line x1="20" y1="45" x2="300" y2="45" stroke="#A8412B" stroke-width="6"/>
+          <line x1="300" y1="45" x2="590" y2="45" stroke="#8A5A12" stroke-width="6"/>
+          <line x1="590" y1="45" x2="880" y2="45" stroke="#1D4E4B" stroke-width="6"/>
+          <circle cx="20" cy="45" r="7" fill="#A8412B"/><circle cx="300" cy="45" r="7" fill="#8A5A12"/><circle cx="590" cy="45" r="7" fill="#1D4E4B"/><circle cx="880" cy="45" r="7" fill="#1D4E4B"/>
+          <text x="20" y="25" font-family="Inter" font-size="13" fill="#A8412B">Privileged</text>
+          <text x="20" y="70" font-family="Inter" font-size="10" fill="#4B5563">unrestricted — infra namespaces only</text>
+          <text x="300" y="25" font-family="Inter" font-size="13" fill="#8A5A12">Baseline</text>
+          <text x="300" y="70" font-family="Inter" font-size="10" fill="#4B5563">blocks known privilege escalations</text>
+          <text x="590" y="25" font-family="Inter" font-size="13" fill="#1D4E4B">Restricted</text>
+          <text x="590" y="70" font-family="Inter" font-size="10" fill="#4B5563">enforces current pod hardening best practice</text>
+        </svg>
+      </div>
+
+      <h3 class="text-lg font-semibold text-ink mb-4">Network segmentation, before and after</h3>
+      <div class="grid md:grid-cols-2 gap-px bg-line border border-line rounded-lg overflow-hidden">
+        <div class="bg-white p-6">
+          <p class="text-sm text-rust mb-3">Before — flat network</p>
+          <svg viewBox="0 0 300 180" class="w-full" role="img" aria-label="Flat network with every pod able to reach every other pod">
+            <g fill="#FBECE8" stroke="#A8412B">
+              <rect x="20" y="20" width="70" height="40" rx="6"/><rect x="115" y="20" width="70" height="40" rx="6"/><rect x="210" y="20" width="70" height="40" rx="6"/>
+              <rect x="20" y="120" width="70" height="40" rx="6"/><rect x="115" y="120" width="70" height="40" rx="6"/><rect x="210" y="120" width="70" height="40" rx="6"/>
+            </g>
+            <g stroke="#A8412B" stroke-width="1">
+              <line x1="90" y1="40" x2="115" y2="40"/><line x1="185" y1="40" x2="210" y2="40"/><line x1="55" y1="60" x2="55" y2="120"/><line x1="150" y1="60" x2="150" y2="120"/><line x1="245" y1="60" x2="245" y2="120"/>
+              <line x1="90" y1="140" x2="115" y2="140"/><line x1="185" y1="140" x2="210" y2="140"/><line x1="55" y1="60" x2="245" y2="120"/><line x1="245" y1="60" x2="55" y2="120"/>
+            </g>
+          </svg>
+        </div>
+        <div class="bg-white p-6">
+          <p class="text-sm text-teal mb-3">After — default deny, explicit allow</p>
+          <svg viewBox="0 0 300 180" class="w-full" role="img" aria-label="Segmented network where only explicitly allowed connections exist">
+            <g fill="#E8F0EF" stroke="#1D4E4B">
+              <rect x="20" y="20" width="70" height="40" rx="6"/><rect x="115" y="20" width="70" height="40" rx="6"/><rect x="210" y="20" width="70" height="40" rx="6"/>
+              <rect x="20" y="120" width="70" height="40" rx="6"/><rect x="115" y="120" width="70" height="40" rx="6"/><rect x="210" y="120" width="70" height="40" rx="6"/>
+            </g>
+            <g stroke="#1D4E4B" stroke-width="1.5">
+              <line x1="90" y1="40" x2="115" y2="40"/><line x1="150" y1="60" x2="150" y2="120"/>
+            </g>
+          </svg>
+        </div>
+      </div>
+      <div class="mt-8 flex gap-4 p-5 bg-tealsoft border border-teal/20 rounded-lg">
+        <span class="flex-shrink-0 text-teal font-semibold text-sm">Remember</span>
+        <ul class="text-sm text-ink space-y-1.5 list-disc pl-4">
+          <li>Kubernetes ships wide open by default — hardening is something you must turn on yourself.</li>
+          <li>Restricted Pod Security Standard should be the normal setting, not the exception you reach for later.</li>
+          <li>A namespace with no NetworkPolicy is wide open — deny everything by default, then open specific doors.</li>
+          <li>Where you host changes how you manage identity: Workload Identity Federation for GKE, EKS Pod Identity for AWS.</li>
+        </ul>
+      </div>
+    </section>
+
+    <!-- MODULE 4 -->
+    <section id="module-04" class="py-16 border-b border-line scroll-mt-20">
+      <div class="flex items-baseline gap-4 mb-8">
+        <span class="module-index text-3xl text-teal">04</span>
+        <h2 class="text-2xl md:text-3xl font-semibold text-ink">Where AI changes the threat model</h2>
+      </div>
+      <p class="text-subink max-w-2xl mb-8 leading-relaxed">
+        AI workloads on Kubernetes cut both ways: they introduce new attack surface, and they're increasingly the tool used to watch that surface.
+      </p>
+
+      <h3 class="text-lg font-semibold text-ink mb-4">Threats introduced by hosting AI/ML workloads</h3>
+      <div class="overflow-x-auto border border-line rounded-lg mb-10">
+        <table class="w-full text-sm text-left border-collapse">
+          <thead><tr class="bg-surface text-subink"><th class="p-3 font-medium border-b border-line w-1/5">Threat</th><th class="p-3 font-medium border-b border-line w-2/5">Attack vector</th><th class="p-3 font-medium border-b border-line w-2/5">Mitigation</th></tr></thead>
+          <tbody class="divide-y divide-line">
+            <tr><td class="p-3 font-medium text-ink align-top">Data poisoning</td><td class="p-3 text-subink align-top">Unvetted or compromised training data silently corrupts model behavior</td><td class="p-3 text-subink align-top">Treat data provenance like a software supply chain — verify and pin sources</td></tr>
+            <tr><td class="p-3 font-medium text-ink align-top">Prompt injection</td><td class="p-3 text-subink align-top">A tool-using agent is manipulated through its input into executing unintended commands</td><td class="p-3 text-subink align-top">Sandbox inference workloads with gVisor or Kata Containers rather than the default runtime</td></tr>
+            <tr><td class="p-3 font-medium text-ink align-top">Accelerator starvation</td><td class="p-3 text-subink align-top">A runaway or malicious job monopolizes GPU/TPU capacity cluster-wide</td><td class="p-3 text-subink align-top">ResourceQuotas and LimitRanges scoped specifically to accelerator resources</td></tr>
+            <tr><td class="p-3 font-medium text-ink align-top">Dataset exposure</td><td class="p-3 text-subink align-top">Large training volumes are read/write by default and an attractive target</td><td class="p-3 text-subink align-top">Mount read-only where the workload doesn't need to write; encrypt at rest</td></tr>
+            <tr><td class="p-3 font-medium text-ink align-top">Model exfiltration</td><td class="p-3 text-subink align-top">Trained weights leave the cluster through an unrestricted egress path</td><td class="p-3 text-subink align-top">Egress NetworkPolicies scoped to known model registries only</td></tr>
+          </tbody>
+        </table>
+      </div>
+
+      <h3 class="text-lg font-semibold text-ink mb-4">Using AI/ML to protect the cluster</h3>
+      <div class="overflow-x-auto border border-line rounded-lg mb-10">
+        <table class="w-full text-sm text-left border-collapse">
+          <thead><tr class="bg-surface text-subink"><th class="p-3 font-medium border-b border-line w-1/4">Capability</th><th class="p-3 font-medium border-b border-line w-2/4">How it works</th><th class="p-3 font-medium border-b border-line w-1/4">Human-in-the-loop constraint</th></tr></thead>
+          <tbody class="divide-y divide-line">
+            <tr><td class="p-3 font-medium text-ink align-top">eBPF anomaly detection</td><td class="p-3 text-subink align-top">A lightweight model trained on normal syscall behavior flags deviations static rules would miss</td><td class="p-3 text-subink align-top">Alerts route to a human; no automatic kill by default</td></tr>
+            <tr><td class="p-3 font-medium text-ink align-top">Policy drafting</td><td class="p-3 text-subink align-top">Historical traffic patterns are mined to propose least-privilege NetworkPolicies</td><td class="p-3 text-subink align-top">Always reviewed and merged by a human, never auto-applied</td></tr>
+            <tr><td class="p-3 font-medium text-ink align-top">Drift detection</td><td class="p-3 text-subink align-top">Live cluster config is continuously diffed against the GitOps source of truth</td><td class="p-3 text-subink align-top">Auto-revert only in pre-approved, low-risk namespaces</td></tr>
+            <tr><td class="p-3 font-medium text-ink align-top">Incident triage</td><td class="p-3 text-subink align-top">Signals are correlated and summarized into a timeline for a responder</td><td class="p-3 text-subink align-top">Containment decisions stay human-approved until false-positive rate is proven over time</td></tr>
+          </tbody>
+        </table>
+      </div>
+
+      <h3 class="text-lg font-semibold text-ink mb-4">AI workload isolation boundary</h3>
+      <div class="border border-line rounded-lg p-4 overflow-x-auto">
+        <svg viewBox="0 0 820 220" class="w-full min-w-[640px]" role="img" aria-label="Diagram of an isolated AI workload with sandboxed runtime, read-only dataset, and restricted egress">
+          <rect x="20" y="20" width="780" height="180" rx="10" fill="#F6F7F9" stroke="#E2E5EA"/>
+          <text x="40" y="45" font-family="Inter" font-size="13" fill="#4B5563">GPU-enabled node</text>
+          <rect x="50" y="65" width="280" height="110" rx="8" fill="#FFFFFF" stroke="#A8412B" stroke-dasharray="4 3"/>
+          <text x="190" y="85" font-family="Inter" font-size="12" fill="#A8412B" text-anchor="middle">Sandboxed runtime (gVisor)</text>
+          <rect x="70" y="100" width="110" height="50" rx="6" fill="#FBECE8" stroke="#A8412B"/>
+          <text x="125" y="130" font-family="IBM Plex Mono" font-size="11" fill="#14181F" text-anchor="middle">inference pod</text>
+          <rect x="200" y="100" width="110" height="50" rx="6" fill="#FBECE8" stroke="#A8412B"/>
+          <text x="255" y="130" font-family="IBM Plex Mono" font-size="11" fill="#14181F" text-anchor="middle">tool agent</text>
+
+          <rect x="370" y="65" width="180" height="110" rx="8" fill="#FFFFFF" stroke="#1D4E4B"/>
+          <text x="460" y="90" font-family="Inter" font-size="12" fill="#1D4E4B" text-anchor="middle">Dataset volume</text>
+          <text x="460" y="110" font-family="IBM Plex Mono" font-size="11" fill="#4B5563" text-anchor="middle">mode: ReadOnlyMany</text>
+          <text x="460" y="128" font-family="IBM Plex Mono" font-size="11" fill="#4B5563" text-anchor="middle">encrypted at rest</text>
+
+          <rect x="590" y="65" width="180" height="110" rx="8" fill="#FFFFFF" stroke="#1D4E4B"/>
+          <text x="680" y="90" font-family="Inter" font-size="12" fill="#1D4E4B" text-anchor="middle">Egress policy</text>
+          <text x="680" y="110" font-family="IBM Plex Mono" font-size="11" fill="#4B5563" text-anchor="middle">allow: model registry</text>
+          <text x="680" y="128" font-family="IBM Plex Mono" font-size="11" fill="#4B5563" text-anchor="middle">deny: everything else</text>
+
+          <line x1="330" y1="120" x2="368" y2="120" stroke="#4B5563" stroke-width="1.5" marker-end="url(#arrow3)"/>
+          <line x1="550" y1="120" x2="588" y2="120" stroke="#4B5563" stroke-width="1.5" marker-end="url(#arrow3)"/>
+          <defs><marker id="arrow3" markerWidth="8" markerHeight="8" refX="4" refY="4" orient="auto"><path d="M0,0 L8,4 L0,8 Z" fill="#4B5563"/></marker></defs>
+        </svg>
+      </div>
+      <div class="mt-8 flex gap-4 p-5 bg-tealsoft border border-teal/20 rounded-lg">
+        <span class="flex-shrink-0 text-teal font-semibold text-sm">Remember</span>
+        <ul class="text-sm text-ink space-y-1.5 list-disc pl-4">
+          <li>AI workloads need the same sandboxing as anything else — plus GPU quotas so one job can't hog the whole cluster.</li>
+          <li>AI is great at spotting something unusual; a human should still approve any action that shuts something down.</li>
+        </ul>
+      </div>
+    </section>
+
+    <!-- MODULE 5 -->
+    <section id="module-05" class="py-16 border-b border-line scroll-mt-20">
+      <div class="flex items-baseline gap-4 mb-8">
+        <span class="module-index text-3xl text-teal">05</span>
+        <h2 class="text-2xl md:text-3xl font-semibold text-ink">Benchmarks, checklist, and tooling</h2>
+      </div>
+
+      <h3 class="text-lg font-semibold text-ink mb-4">Checklist, grouped by CIS Benchmark domain</h3>
+      <div class="grid sm:grid-cols-2 gap-6 mb-10">
+        <div>
+          <p class="text-sm font-medium text-ink mb-3">1 &nbsp;Control plane components</p>
+          <ul class="space-y-2">
+            <li class="flex gap-3 p-3 border border-line rounded-md text-sm text-subink"><span class="h-4 w-4 flex-shrink-0 rounded border border-teal mt-0.5"></span>Anonymous auth disabled on the API server</li>
+            <li class="flex gap-3 p-3 border border-line rounded-md text-sm text-subink"><span class="h-4 w-4 flex-shrink-0 rounded border border-teal mt-0.5"></span>Insecure port disabled; only the secure port is bound</li>
+            <li class="flex gap-3 p-3 border border-line rounded-md text-sm text-subink"><span class="h-4 w-4 flex-shrink-0 rounded border border-teal mt-0.5"></span>Admission plugins include NodeRestriction and PodSecurity</li>
+          </ul>
+        </div>
+        <div>
+          <p class="text-sm font-medium text-ink mb-3">2 &nbsp;etcd</p>
+          <ul class="space-y-2">
+            <li class="flex gap-3 p-3 border border-line rounded-md text-sm text-subink"><span class="h-4 w-4 flex-shrink-0 rounded border border-teal mt-0.5"></span>Client and peer connections require TLS</li>
+            <li class="flex gap-3 p-3 border border-line rounded-md text-sm text-subink"><span class="h-4 w-4 flex-shrink-0 rounded border border-teal mt-0.5"></span>Secrets encrypted at rest via a KMS provider</li>
+            <li class="flex gap-3 p-3 border border-line rounded-md text-sm text-subink"><span class="h-4 w-4 flex-shrink-0 rounded border border-teal mt-0.5"></span>Data directory permissions restricted to the etcd user</li>
+          </ul>
+        </div>
+        <div>
+          <p class="text-sm font-medium text-ink mb-3">3 &nbsp;Worker nodes</p>
+          <ul class="space-y-2">
+            <li class="flex gap-3 p-3 border border-line rounded-md text-sm text-subink"><span class="h-4 w-4 flex-shrink-0 rounded border border-teal mt-0.5"></span>Kubelet anonymous auth disabled</li>
+            <li class="flex gap-3 p-3 border border-line rounded-md text-sm text-subink"><span class="h-4 w-4 flex-shrink-0 rounded border border-teal mt-0.5"></span>Kubelet client certificate rotation enabled</li>
+            <li class="flex gap-3 p-3 border border-line rounded-md text-sm text-subink"><span class="h-4 w-4 flex-shrink-0 rounded border border-teal mt-0.5"></span>Kubeconfig file permissions restricted</li>
+          </ul>
+        </div>
+        <div>
+          <p class="text-sm font-medium text-ink mb-3">4 &nbsp;Policies</p>
+          <ul class="space-y-2">
+            <li class="flex gap-3 p-3 border border-line rounded-md text-sm text-subink"><span class="h-4 w-4 flex-shrink-0 rounded border border-teal mt-0.5"></span>No wildcard verbs or resources in any ClusterRole</li>
+            <li class="flex gap-3 p-3 border border-line rounded-md text-sm text-subink"><span class="h-4 w-4 flex-shrink-0 rounded border border-teal mt-0.5"></span>Pod Security Standards enforced, not just audited</li>
+            <li class="flex gap-3 p-3 border border-line rounded-md text-sm text-subink"><span class="h-4 w-4 flex-shrink-0 rounded border border-teal mt-0.5"></span>Default-deny NetworkPolicy present in every namespace</li>
+          </ul>
+        </div>
+      </div>
+
+      <h3 class="text-lg font-semibold text-ink mb-4">OWASP Kubernetes Top 10</h3>
+      <div class="overflow-x-auto border border-line rounded-lg mb-10">
+        <table class="w-full text-sm text-left border-collapse">
+          <thead><tr class="bg-surface text-subink"><th class="p-3 font-medium border-b border-line w-1/6">ID</th><th class="p-3 font-medium border-b border-line w-5/6">Risk</th></tr></thead>
+          <tbody class="divide-y divide-line">
+            <tr><td class="p-3 font-medium text-ink mono">K01</td><td class="p-3 text-subink">Insecure workload configurations — running as root, no resource limits</td></tr>
+            <tr><td class="p-3 font-medium text-ink mono">K02</td><td class="p-3 text-subink">Supply chain vulnerabilities — unverified base images and dependencies</td></tr>
+            <tr><td class="p-3 font-medium text-ink mono">K03</td><td class="p-3 text-subink">Overly permissive RBAC — wildcard roles and cluster-admin sprawl</td></tr>
+            <tr><td class="p-3 font-medium text-ink mono">K04</td><td class="p-3 text-subink">Lack of centralized policy enforcement across namespaces and clusters</td></tr>
+            <tr><td class="p-3 font-medium text-ink mono">K05</td><td class="p-3 text-subink">Inadequate logging and monitoring of API and runtime activity</td></tr>
+            <tr><td class="p-3 font-medium text-ink mono">K06</td><td class="p-3 text-subink">Broken authentication mechanisms — weak or long-lived credentials</td></tr>
+            <tr><td class="p-3 font-medium text-ink mono">K07</td><td class="p-3 text-subink">Missing network segmentation controls between workloads</td></tr>
+            <tr><td class="p-3 font-medium text-ink mono">K08</td><td class="p-3 text-subink">Secrets management failures — plaintext or overly accessible secrets</td></tr>
+            <tr><td class="p-3 font-medium text-ink mono">K09</td><td class="p-3 text-subink">Misconfigured cluster components inherited from default installs</td></tr>
+            <tr><td class="p-3 font-medium text-ink mono">K10</td><td class="p-3 text-subink">Outdated and vulnerable Kubernetes versions and dependencies</td></tr>
+          </tbody>
+        </table>
+      </div>
+
+      <h3 class="text-lg font-semibold text-ink mb-4">Tooling matrix</h3>
+      <div class="overflow-x-auto border border-line rounded-lg mb-10">
+        <table class="w-full text-sm text-left border-collapse">
+          <thead><tr class="bg-surface text-subink"><th class="p-4 font-medium border-b border-line">Tool</th><th class="p-4 font-medium border-b border-line">Primary use case</th><th class="p-4 font-medium border-b border-line">Deployment method</th></tr></thead>
+          <tbody class="divide-y divide-line">
+            <tr><td class="p-4 font-medium text-ink">Trivy</td><td class="p-4 text-subink">Static image, filesystem, and IaC scanning</td><td class="p-4 text-subink">CLI / CI step / admission controller</td></tr>
+            <tr><td class="p-4 font-medium text-ink">Kube-bench</td><td class="p-4 text-subink">CIS Benchmark compliance checks</td><td class="p-4 text-subink">Job run against each node</td></tr>
+            <tr><td class="p-4 font-medium text-ink">Kube-hunter</td><td class="p-4 text-subink">External and in-cluster penetration testing</td><td class="p-4 text-subink">Remote scanner / pod inside the cluster</td></tr>
+            <tr><td class="p-4 font-medium text-ink">Falco</td><td class="p-4 text-subink">Runtime syscall anomaly detection</td><td class="p-4 text-subink">DaemonSet on every node</td></tr>
+            <tr><td class="p-4 font-medium text-ink">Kyverno</td><td class="p-4 text-subink">Policy-as-code — validate, mutate, generate</td><td class="p-4 text-subink">Admission controller webhook</td></tr>
+            <tr><td class="p-4 font-medium text-ink">OPA / Gatekeeper</td><td class="p-4 text-subink">General-purpose policy-as-code with Rego</td><td class="p-4 text-subink">Admission controller webhook</td></tr>
+            <tr><td class="p-4 font-medium text-ink">Cilium</td><td class="p-4 text-subink">eBPF-based networking, NetworkPolicy, and observability</td><td class="p-4 text-subink">CNI plugin, DaemonSet</td></tr>
+            <tr><td class="p-4 font-medium text-ink">Cosign</td><td class="p-4 text-subink">Image signing and signature verification</td><td class="p-4 text-subink">CLI in CI / admission controller check</td></tr>
+          </tbody>
+        </table>
+      </div>
+
+      <h3 class="text-lg font-semibold text-ink mb-4">Maturity model</h3>
+      <div class="overflow-x-auto border border-line rounded-lg">
+        <table class="w-full text-sm text-left border-collapse">
+          <thead><tr class="bg-surface text-subink"><th class="p-3 font-medium border-b border-line w-1/6">Level</th><th class="p-3 font-medium border-b border-line w-5/6">What it looks like</th></tr></thead>
+          <tbody class="divide-y divide-line">
+            <tr><td class="p-3 font-medium text-ink align-top">0 — Ad hoc</td><td class="p-3 text-subink align-top">Default cluster config; no scanning; RBAC is mostly cluster-admin</td></tr>
+            <tr><td class="p-3 font-medium text-ink align-top">1 — Managed</td><td class="p-3 text-subink align-top">Image scanning in CI; namespace-scoped RBAC; manual CIS checks before audits</td></tr>
+            <tr><td class="p-3 font-medium text-ink align-top">2 — Enforced</td><td class="p-3 text-subink align-top">Admission-time policy enforcement; default-deny networking; audit logging shipped centrally</td></tr>
+            <tr><td class="p-3 font-medium text-ink align-top">3 — Optimized</td><td class="p-3 text-subink align-top">Runtime detection with automated, scoped response; continuous drift detection against GitOps state</td></tr>
+          </tbody>
+        </table>
+      </div>
+      <div class="mt-8 flex gap-4 p-5 bg-tealsoft border border-teal/20 rounded-lg">
+        <span class="flex-shrink-0 text-teal font-semibold text-sm">Remember</span>
+        <ul class="text-sm text-ink space-y-1.5 list-disc pl-4">
+          <li>CIS Benchmark asks "did you configure it correctly." OWASP Top 10 asks "what usually goes wrong."</li>
+          <li>A scanning tool only helps if its findings are enforced, not just read and filed away.</li>
+        </ul>
+      </div>
+    </section>
+
+    <!-- MODULE 6 -->
+    <section id="module-06" class="py-16 border-b border-line scroll-mt-20">
+      <div class="flex items-baseline gap-4 mb-8">
+        <span class="module-index text-3xl text-teal">06</span>
+        <h2 class="text-2xl md:text-3xl font-semibold text-ink">Shifting left: workflow automation</h2>
+      </div>
+      <p class="text-subink max-w-2xl mb-8 leading-relaxed">
+        None of module 3's decisions hold if they depend on someone remembering to apply them by hand. These checkpoints don't have to run in this order — they run continuously, at different stages of the same pipeline.
+      </p>
+
+      <div class="border border-line rounded-lg p-4 mb-10 overflow-x-auto">
+        <svg viewBox="0 0 980 140" class="w-full min-w-[820px]" role="img" aria-label="Pipeline diagram from code commit through build, scan, sign, policy gate, deploy, and runtime monitoring">
+          <g font-family="Inter" font-size="11">
+            <rect x="10" y="45" width="110" height="50" rx="7" fill="#FFFFFF" stroke="#E2E5EA"/><text x="65" y="75" text-anchor="middle" fill="#14181F">Commit</text>
+            <rect x="150" y="45" width="110" height="50" rx="7" fill="#FBF2E1" stroke="#8A5A12"/><text x="205" y="75" text-anchor="middle" fill="#14181F">Build + scan</text>
+            <rect x="290" y="45" width="110" height="50" rx="7" fill="#FBF2E1" stroke="#8A5A12"/><text x="345" y="75" text-anchor="middle" fill="#14181F">Sign image</text>
+            <rect x="430" y="45" width="110" height="50" rx="7" fill="#FBECE8" stroke="#A8412B"/><text x="485" y="75" text-anchor="middle" fill="#14181F">Policy gate</text>
+            <rect x="570" y="45" width="110" height="50" rx="7" fill="#E8F0EF" stroke="#1D4E4B"/><text x="625" y="75" text-anchor="middle" fill="#14181F">Deploy</text>
+            <rect x="710" y="45" width="130" height="50" rx="7" fill="#E8F0EF" stroke="#1D4E4B"/><text x="775" y="75" text-anchor="middle" fill="#14181F">Runtime monitor</text>
+            <rect x="860" y="45" width="110" height="50" rx="7" fill="#FBECE8" stroke="#A8412B"/><text x="915" y="68" text-anchor="middle" fill="#14181F">Auto-isolate</text><text x="915" y="82" text-anchor="middle" fill="#4B5563" font-size="9">+ page human</text>
+          </g>
+          <g stroke="#4B5563" stroke-width="1.3" marker-end="url(#arrow4)">
+            <line x1="120" y1="70" x2="148" y2="70"/><line x1="260" y1="70" x2="288" y2="70"/><line x1="400" y1="70" x2="428" y2="70"/><line x1="540" y1="70" x2="568" y2="70"/><line x1="680" y1="70" x2="708" y2="70"/><line x1="840" y1="70" x2="858" y2="70"/>
+          </g>
+          <defs><marker id="arrow4" markerWidth="8" markerHeight="8" refX="4" refY="4" orient="auto"><path d="M0,0 L8,4 L0,8 Z" fill="#4B5563"/></marker></defs>
+        </svg>
+      </div>
+
+      <div class="space-y-4 mb-10">
+        <div class="flex gap-4 p-5 border border-line rounded-lg">
+          <div class="h-8 w-8 flex-shrink-0 rounded-full bg-tealsoft text-teal flex items-center justify-center text-sm font-medium">1</div>
+          <div><h4 class="font-medium text-ink mb-1">Scan at build time</h4><p class="text-subink text-sm leading-relaxed">Every image build runs through a vulnerability scanner before it's pushed to a registry. Fail the build on critical or high severity findings rather than warning and continuing.</p></div>
+        </div>
+        <div class="flex gap-4 p-5 border border-line rounded-lg">
+          <div class="h-8 w-8 flex-shrink-0 rounded-full bg-tealsoft text-teal flex items-center justify-center text-sm font-medium">2</div>
+          <div><h4 class="font-medium text-ink mb-1">Enforce policy at the pull request</h4><p class="text-subink text-sm leading-relaxed">Validate manifests against your organization's policy set — no privileged containers, no missing resource limits, no host network access — using Kyverno or OPA/Gatekeeper in CI, before a human ever approves the merge.</p></div>
+        </div>
+        <div class="flex gap-4 p-5 border border-line rounded-lg">
+          <div class="h-8 w-8 flex-shrink-0 rounded-full bg-tealsoft text-teal flex items-center justify-center text-sm font-medium">3</div>
+          <div><h4 class="font-medium text-ink mb-1">Detect and respond at runtime</h4><p class="text-subink text-sm leading-relaxed">Falco watches live syscall behavior. On a high-confidence match — a shell spawned inside a container that never spawns shells, for instance — trigger an automated response that isolates the pod's network access and pages a human, rather than killing it silently.</p></div>
+        </div>
+      </div>
+
+      <h3 class="text-lg font-semibold text-ink mb-4">Reference pipeline</h3>
+      <pre class="bg-ink text-white text-xs mono p-5 rounded-lg overflow-x-auto leading-relaxed mb-10">name: gitops-secure-delivery
+on: [pull_request]
+jobs:
+  security-audit:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout source
+        uses: actions/checkout@v4
+
+      - name: Validate manifests against policy
+        uses: kyverno/action-validate@v1
+        with:
+          policy: policies/disallow-privileged-containers.yaml
+          resource: deploy/production-manifests.yaml
+
+      - name: Scan image for vulnerabilities
+        uses: aquasecurity/trivy-action@master
+        with:
+          image-ref: 'registry.internal/app:${{ github.sha }}'
+          format: 'table'
+          exit-code: '1'
+          ignore-unfixed: true
+          vuln-type: 'os,library'
+          severity: 'CRITICAL,HIGH'</pre>
+
+      <h3 class="text-lg font-semibold text-ink mb-4">Keyless cloud authentication for the pipeline itself</h3>
+      <p class="text-subink max-w-2xl mb-5 leading-relaxed">
+        The pipeline that deploys your cluster shouldn't hold long-lived cloud credentials as GitHub secrets — that's the same anti-pattern module 3 flags for workloads. GitHub's OIDC token lets the runner assume a short-lived cloud role directly.
+      </p>
+      <pre class="bg-ink text-white text-xs mono p-5 rounded-lg overflow-x-auto leading-relaxed mb-10">permissions:
+  id-token: write   # required to request the OIDC token
+  contents: read
+
+jobs:
+  deploy:
+    runs-on: ubuntu-latest
+    steps:
+      # AWS EKS — assumes a role via OIDC, no static access keys stored anywhere
+      - name: Authenticate to AWS
+        uses: aws-actions/configure-aws-credentials@v4
+        with:
+          role-to-assume: arn:aws:iam::123456789012:role/github-actions-deploy
+          aws-region: us-east-1
+
+      - name: Update kubeconfig
+        run: aws eks update-kubeconfig --name prod-cluster --region us-east-1
+
+      # Google GKE — same pattern via Workload Identity Federation
+      - name: Authenticate to Google Cloud
+        uses: google-github-actions/auth@v2
+        with:
+          workload_identity_provider: projects/123456789/locations/global/workloadIdentityPools/github-pool/providers/github-provider
+          service_account: gke-deployer@my-project.iam.gserviceaccount.com
+
+      - name: Get GKE credentials
+        uses: google-github-actions/get-gke-credentials@v2
+        with:
+          cluster_name: prod-cluster
+          location: us-central1
+
+      - name: Apply manifests
+        run: kubectl apply -f deploy/production-manifests.yaml</pre>
+
+      <h3 class="text-lg font-semibold text-ink mb-4">Incident response runbook</h3>
+      <div class="overflow-x-auto border border-line rounded-lg">
+        <table class="w-full text-sm text-left border-collapse">
+          <thead><tr class="bg-surface text-subink"><th class="p-3 font-medium border-b border-line w-1/6">Severity</th><th class="p-3 font-medium border-b border-line w-2/6">Trigger example</th><th class="p-3 font-medium border-b border-line w-2/6">Automated action</th><th class="p-3 font-medium border-b border-line w-1/6">Human action</th></tr></thead>
+          <tbody class="divide-y divide-line">
+            <tr><td class="p-3 font-medium text-rust align-top">Critical</td><td class="p-3 text-subink align-top">Shell spawned inside a pod that never spawns shells</td><td class="p-3 text-subink align-top">Isolate pod network access immediately</td><td class="p-3 text-subink align-top">Page on-call now</td></tr>
+            <tr><td class="p-3 font-medium text-amber align-top">High</td><td class="p-3 text-subink align-top">Unexpected outbound connection to an unknown IP</td><td class="p-3 text-subink align-top">Flag and rate-limit egress</td><td class="p-3 text-subink align-top">Review within the hour</td></tr>
+            <tr><td class="p-3 font-medium text-ink align-top">Medium</td><td class="p-3 text-subink align-top">Config drift from GitOps source of truth</td><td class="p-3 text-subink align-top">Open a ticket, no auto-revert</td><td class="p-3 text-subink align-top">Reconcile by next business day</td></tr>
+          </tbody>
+        </table>
+      </div>
+      <div class="mt-8 flex gap-4 p-5 bg-tealsoft border border-teal/20 rounded-lg">
+        <span class="flex-shrink-0 text-teal font-semibold text-sm">Remember</span>
+        <ul class="text-sm text-ink space-y-1.5 list-disc pl-4">
+          <li>Scan the image, gate the pull request, watch the runtime — that's the order they happen in, not the order of importance.</li>
+          <li>Never put a long-lived cloud key in a CI pipeline. Use a short-lived, OIDC-based token instead.</li>
+        </ul>
+      </div>
+    </section>
+
+    <!-- MODULE 7 -->
+    <section id="module-07" class="py-16 scroll-mt-20">
+      <div class="flex items-baseline gap-4 mb-8">
+        <span class="module-index text-3xl text-teal">07</span>
+        <h2 class="text-2xl md:text-3xl font-semibold text-ink">Compliance dashboard component</h2>
+      </div>
+      <p class="text-subink max-w-2xl mb-8 leading-relaxed">
+        A working mockup you can drop into an internal tool. The audit button and both accordions are functional — no framework required.
+      </p>
+
+      <div class="border border-line rounded-xl overflow-hidden mb-10">
+        <div class="flex items-center justify-between p-5 border-b border-line bg-surface">
+          <div><p class="text-sm text-subink">Assurance node</p><p class="font-medium text-ink mono text-sm">sec-labs-k8s-01</p></div>
+          <button id="auditBtn" onclick="runAudit()" class="focus-ring bg-teal text-white text-sm font-medium px-4 py-2 rounded-md hover:bg-[#163e3c] transition-colors">Run automated audit</button>
+        </div>
+
+        <div class="grid sm:grid-cols-4 divide-y sm:divide-y-0 sm:divide-x divide-line">
+          <div class="p-6"><p class="text-sm text-subink mb-2">CIS pass rate</p><p id="cisMetric" class="text-3xl font-semibold text-teal">94.2%</p></div>
+          <div class="p-6"><p class="text-sm text-subink mb-2">Runtime events blocked</p><p id="runtimeMetric" class="text-3xl font-semibold text-ink">0</p></div>
+          <div class="p-6"><p class="text-sm text-subink mb-2">Open policy violations</p><p id="violationMetric" class="text-3xl font-semibold text-ink">4</p></div>
+          <div class="p-6"><p class="text-sm text-subink mb-2">Overall grade</p><p id="gradeMetric" class="text-3xl font-semibold text-ink">B+</p></div>
+        </div>
+
+        <div class="border-t border-line">
+          <button onclick="toggleAccordion('logContent','logArrow')" class="focus-ring w-full flex items-center justify-between p-5 text-left hover:bg-surface transition-colors">
+            <span class="text-sm font-medium text-ink">Vulnerability log</span>
+            <svg id="logArrow" class="h-4 w-4 text-subink transition-transform" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2"><path stroke-linecap="round" stroke-linejoin="round" d="M19 9l-7 7-7-7" /></svg>
+          </button>
+          <div id="logContent" class="hidden px-5 pb-5">
+            <pre class="bg-ink text-white text-xs mono p-4 rounded-md leading-relaxed overflow-x-auto">[info] audit engine started
+[pass] API server TLS cipher suite validated
+[pass] seccomp profile inherited by default runtime
+[warn] pod running in default namespace with no network policy
+[info] audit cycle complete</pre>
+          </div>
+        </div>
+
+        <div class="border-t border-line">
+          <button onclick="toggleAccordion('nsContent','nsArrow')" class="focus-ring w-full flex items-center justify-between p-5 text-left hover:bg-surface transition-colors">
+            <span class="text-sm font-medium text-ink">Namespace compliance</span>
+            <svg id="nsArrow" class="h-4 w-4 text-subink transition-transform" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2"><path stroke-linecap="round" stroke-linejoin="round" d="M19 9l-7 7-7-7" /></svg>
+          </button>
+          <div id="nsContent" class="hidden px-5 pb-5">
+            <table class="w-full text-sm text-left border-collapse border border-line rounded-md overflow-hidden">
+              <thead><tr class="bg-surface text-subink"><th class="p-2 font-medium">Namespace</th><th class="p-2 font-medium">Pod Security Standard</th><th class="p-2 font-medium">Default-deny policy</th></tr></thead>
+              <tbody class="divide-y divide-line">
+                <tr><td class="p-2 text-ink">payments</td><td class="p-2 text-subink">restricted</td><td class="p-2 text-teal">present</td></tr>
+                <tr><td class="p-2 text-ink">ml-inference</td><td class="p-2 text-subink">restricted</td><td class="p-2 text-teal">present</td></tr>
+                <tr><td class="p-2 text-ink">legacy-batch</td><td class="p-2 text-subink">baseline</td><td class="p-2 text-rust">missing</td></tr>
+              </tbody>
+            </table>
+          </div>
+        </div>
+      </div>
+      <p class="text-xs text-subink mb-8">Figures shown are illustrative sample data for the mockup, not a live scan result.</p>
+      <div class="flex gap-4 p-5 bg-tealsoft border border-teal/20 rounded-lg">
+        <span class="flex-shrink-0 text-teal font-semibold text-sm">Remember</span>
+        <ul class="text-sm text-ink space-y-1.5 list-disc pl-4">
+          <li>A dashboard is only trustworthy if its numbers come from a real scan, not a demo button.</li>
+          <li>"Zero blocked events" doesn't always mean safe — it can also mean nothing is watching.</li>
+        </ul>
+      </div>
+    </section>
+
+    <!-- MODULE 8 -->
+    <section id="module-08" class="py-16 border-b border-line scroll-mt-20">
+      <div class="flex items-baseline gap-4 mb-8">
+        <span class="module-index text-3xl text-teal">08</span>
+        <h2 class="text-2xl md:text-3xl font-semibold text-ink">Hands-on lab exercises</h2>
+      </div>
+      <p class="text-subink max-w-2xl mb-10 leading-relaxed">
+        Reading about a tool and running it are different skills. Each lab below is self-contained, uses a free local cluster (<a href="https://kind.sigs.k8s.io" class="text-teal underline">kind</a>), and has a concrete way to verify you actually did it — not just that you followed the steps. If you don't already have a local cluster running, start with Lab 0.
+      </p>
+
+      <div class="space-y-6">
+        <!-- Lab 0 -->
+        <div class="border border-line rounded-lg p-6 bg-surface">
+          <p class="text-xs font-medium text-amber mb-1">Lab 0 — do this first</p>
+          <h3 class="text-lg font-semibold text-ink mb-3">Set up a local cluster</h3>
+          <p class="text-sm text-subink mb-4"><strong class="text-ink">Objective:</strong> get the four tools every later lab depends on installed and working, once, before touching any security tool.</p>
+          <p class="text-sm text-subink mb-2"><strong class="text-ink">What you're installing and why:</strong></p>
+          <ul class="text-sm text-subink list-disc pl-5 mb-4 space-y-1">
+            <li><strong class="text-ink">Docker</strong> — runs the containers that make up your local cluster</li>
+            <li><strong class="text-ink"><code class="mono text-xs bg-white px-1 rounded">kind</code></strong> — "Kubernetes in Docker," a real cluster that boots in under a minute</li>
+            <li><strong class="text-ink"><code class="mono text-xs bg-white px-1 rounded">kubectl</code></strong> — the command-line tool you use to talk to any Kubernetes cluster</li>
+            <li><strong class="text-ink">Helm</strong> — installs pre-packaged tools like Kyverno and Falco with one command instead of dozens of manifests</li>
+          </ul>
+          <p class="text-sm text-subink mb-2"><strong class="text-ink">Install (macOS, via Homebrew):</strong></p>
+          <pre class="bg-ink text-white text-xs mono p-4 rounded-md overflow-x-auto leading-relaxed mb-3">brew install --cask docker
+brew install kind kubectl helm</pre>
+          <p class="text-sm text-subink mb-2"><strong class="text-ink">Install (Ubuntu/Debian Linux):</strong></p>
+          <pre class="bg-ink text-white text-xs mono p-4 rounded-md overflow-x-auto leading-relaxed mb-3">sudo apt-get update && sudo apt-get install -y docker.io
+curl -Lo kind https://kind.sigs.k8s.io/dl/latest/kind-linux-amd64 && chmod +x kind && sudo mv kind /usr/local/bin
+curl -LO "https://dl.k8s.io/release/$(curl -L -s https://dl.k8s.io/release/stable.txt)/bin/linux/amd64/kubectl" && chmod +x kubectl && sudo mv kubectl /usr/local/bin
+curl https://raw.githubusercontent.com/helm/helm/main/scripts/get-helm-3 | bash</pre>
+          <p class="text-sm text-subink mb-2"><strong class="text-ink">Install (Windows, via winget):</strong></p>
+          <pre class="bg-ink text-white text-xs mono p-4 rounded-md overflow-x-auto leading-relaxed mb-3">winget install Docker.DockerDesktop
+winget install Kubernetes.kind Kubernetes.kubectl Helm.Helm</pre>
+          <p class="text-sm text-subink mb-2"><strong class="text-ink">Now create the cluster every later lab uses:</strong></p>
+          <p class="text-sm text-subink mb-2">Kind's default networking (<code class="mono text-xs bg-white px-1 rounded">kindnet</code>) creates NetworkPolicy objects but never actually enforces them — Lab 4 would silently "pass" without proving anything. Disable it and install Calico instead, which does enforce policies:</p>
+          <pre class="bg-ink text-white text-xs mono p-4 rounded-md overflow-x-auto leading-relaxed mb-3">cat <<EOF | kind create cluster --name secure-lab --config=-
+kind: Cluster
+apiVersion: kind.x-k8s.io/v1alpha4
+networking:
+  disableDefaultCNI: true
+  podSubnet: "192.168.0.0/16"
+EOF
+
+kubectl apply -f https://raw.githubusercontent.com/projectcalico/calico/v3.28.0/manifests/calico.yaml
+# if that URL 404s, get the current manifest link from docs.tigera.io/calico/latest/getting-started/kubernetes/kind
+
+kubectl cluster-info --context kind-secure-lab</pre>
+          <p class="text-sm text-subink mb-4"><strong class="text-ink">Verify:</strong> run <code class="mono text-xs bg-white px-1 rounded">kubectl get nodes</code> right after cluster creation — it will show <code class="mono text-xs bg-white px-1 rounded">NotReady</code>, which is expected with no CNI yet. Then run <code class="mono text-xs bg-white px-1 rounded">kubectl get pods -n kube-system -l k8s-app=calico-node -w</code> until it reaches <code class="mono text-xs bg-white px-1 rounded">Running</code>, and re-check <code class="mono text-xs bg-white px-1 rounded">kubectl get nodes</code> — it should now say <code class="mono text-xs bg-white px-1 rounded">Ready</code>. If it never flips, stop here and fix it before Lab 1 — every later lab assumes this works.</p>
+          <div class="p-4 bg-ambersoft border border-amber/30 rounded-md">
+            <p class="text-sm text-ink"><strong>Running this on Ubuntu via WSL2?</strong> Install Docker Desktop for Windows, enable "Use the WSL 2 based engine" in Settings, then turn on WSL Integration for your Ubuntu distro (Settings → Resources → WSL Integration). Skip the <code class="mono text-xs bg-white px-1 rounded">docker.io</code> line in the Linux install block above — Docker Desktop provides the daemon, and your Ubuntu terminal just needs <code class="mono text-xs bg-white px-1 rounded">kind</code>, <code class="mono text-xs bg-white px-1 rounded">kubectl</code>, and <code class="mono text-xs bg-white px-1 rounded">helm</code>. Running Docker natively inside WSL2 without Docker Desktop is possible but needs systemd enabled in <code class="mono text-xs bg-white px-1 rounded">/etc/wsl.conf</code> first, and is more prone to breaking on Windows updates.</p>
+          </div>
+        </div>
+
+        <!-- Lab 1 -->
+        <div class="border border-line rounded-lg p-6">
+          <p class="text-xs font-medium text-teal mb-1">Lab 1</p>
+          <h3 class="text-lg font-semibold text-ink mb-3">Benchmark your cluster with kube-bench</h3>
+          <p class="text-sm text-subink mb-4"><strong class="text-ink">Objective:</strong> run a real CIS Benchmark scan and read the results.</p>
+          <p class="text-sm text-subink mb-2"><strong class="text-ink">Prerequisites:</strong> the cluster from Lab 0, running.</p>
+          <pre class="bg-ink text-white text-xs mono p-4 rounded-md overflow-x-auto leading-relaxed mb-3">kubectl apply -f https://raw.githubusercontent.com/aquasecurity/kube-bench/main/job.yaml
+kubectl wait --for=condition=complete job/kube-bench --timeout=90s
+kubectl logs -l app=kube-bench</pre>
+          <p class="text-sm text-subink"><strong class="text-ink">Verify:</strong> run <code class="mono text-xs bg-surface px-1 rounded">kubectl logs -l app=kube-bench | grep -c "\[FAIL\]"</code>. You've completed the lab when you can produce and explain that number — not when it reads zero.</p>
+        </div>
+
+        <!-- Lab 2 -->
+        <div class="border border-line rounded-lg p-6">
+          <p class="text-xs font-medium text-teal mb-1">Lab 2</p>
+          <h3 class="text-lg font-semibold text-ink mb-3">Gate a build with Trivy</h3>
+          <p class="text-sm text-subink mb-4"><strong class="text-ink">Objective:</strong> see a vulnerability scanner actually fail a build.</p>
+          <p class="text-sm text-subink mb-2"><strong class="text-ink">Prerequisites:</strong> Docker, and <a href="https://trivy.dev" class="text-teal underline">Trivy</a> installed.</p>
+          <pre class="bg-ink text-white text-xs mono p-4 rounded-md overflow-x-auto leading-relaxed mb-3">docker pull nginx:1.16
+trivy image --severity CRITICAL,HIGH --exit-code 1 nginx:1.16 ; echo "exit code: $?"
+
+docker pull nginx:1.27
+trivy image --severity CRITICAL,HIGH --exit-code 1 nginx:1.27 ; echo "exit code: $?"</pre>
+          <p class="text-sm text-subink"><strong class="text-ink">Verify:</strong> the older image should print <code class="mono text-xs bg-surface px-1 rounded">exit code: 1</code> — this is the same check that would fail a CI pipeline. The current image should print <code class="mono text-xs bg-surface px-1 rounded">exit code: 0</code>.</p>
+        </div>
+
+        <!-- Lab 3 -->
+        <div class="border border-line rounded-lg p-6">
+          <p class="text-xs font-medium text-teal mb-1">Lab 3</p>
+          <h3 class="text-lg font-semibold text-ink mb-3">Block privileged containers with Kyverno</h3>
+          <p class="text-sm text-subink mb-4"><strong class="text-ink">Objective:</strong> watch policy-as-code actually reject a bad deployment.</p>
+          <p class="text-sm text-subink mb-2"><strong class="text-ink">Prerequisites:</strong> Kyverno installed on your <code class="mono text-xs bg-surface px-1 rounded">kind</code> cluster.</p>
+          <pre class="bg-ink text-white text-xs mono p-4 rounded-md overflow-x-auto leading-relaxed mb-3">helm repo add kyverno https://kyverno.github.io/kyverno/
+helm install kyverno kyverno/kyverno -n kyverno --create-namespace
+
+kubectl apply -f https://raw.githubusercontent.com/kyverno/policies/main/pod-security/restricted/disallow-privileged-containers/disallow-privileged-containers.yaml
+
+kubectl run bad-pod --image=nginx --overrides='{"spec":{"containers":[{"name":"bad-pod","image":"nginx","securityContext":{"privileged":true}}]}}'</pre>
+          <p class="text-sm text-subink"><strong class="text-ink">Verify:</strong> the last command should be rejected with an admission error mentioning the policy name — not a running pod. If <code class="mono text-xs bg-surface px-1 rounded">bad-pod</code> starts successfully, the policy isn't enforcing yet.</p>
+        </div>
+
+        <!-- Lab 4 -->
+        <div class="border border-line rounded-lg p-6">
+          <p class="text-xs font-medium text-teal mb-1">Lab 4</p>
+          <h3 class="text-lg font-semibold text-ink mb-3">Prove a default-deny NetworkPolicy actually works</h3>
+          <p class="text-sm text-subink mb-4"><strong class="text-ink">Objective:</strong> a real before/after test of network segmentation, not a reading exercise.</p>
+          <pre class="bg-ink text-white text-xs mono p-4 rounded-md overflow-x-auto leading-relaxed mb-3">kubectl create namespace netlab
+kubectl run web --image=nginx -n netlab
+kubectl run client --image=busybox -n netlab -- sleep 3600
+kubectl exec -n netlab client -- wget -qO- --timeout=2 web
+# expect: the nginx welcome page HTML
+
+kubectl apply -n netlab -f - <<'EOF'
+apiVersion: networking.k8s.io/v1
+kind: NetworkPolicy
+metadata:
+  name: default-deny
+spec:
+  podSelector: {}
+  policyTypes: ["Ingress"]
+EOF
+
+kubectl exec -n netlab client -- wget -qO- --timeout=2 web
+# expect: this now times out</pre>
+          <p class="text-sm text-subink"><strong class="text-ink">Verify:</strong> the second <code class="mono text-xs bg-surface px-1 rounded">wget</code> must fail. If it still succeeds, double-check the cluster was created with Calico as in Lab 0 — kind's default CNI would let this pass silently without enforcing anything.</p>
+        </div>
+
+        <!-- Lab 5 -->
+        <div class="border border-line rounded-lg p-6">
+          <p class="text-xs font-medium text-teal mb-1">Lab 5</p>
+          <h3 class="text-lg font-semibold text-ink mb-3">Trigger and observe a Falco alert</h3>
+          <p class="text-sm text-subink mb-4"><strong class="text-ink">Objective:</strong> see runtime detection catch a live, real event.</p>
+          <p class="text-sm text-subink mb-2"><strong class="text-ink">Prerequisites:</strong> Falco installed via Helm.</p>
+          <pre class="bg-ink text-white text-xs mono p-4 rounded-md overflow-x-auto leading-relaxed mb-3">helm repo add falcosecurity https://falcosecurity.github.io/charts
+helm install falco falcosecurity/falco -n falco --create-namespace --set driver.kind=modern_ebpf
+
+# in one terminal, tail Falco's logs
+kubectl logs -n falco -l app.kubernetes.io/name=falco -f
+
+# in a second terminal, do the thing Falco watches for
+kubectl exec -it -n netlab web -- /bin/sh</pre>
+          <p class="text-sm text-subink mb-4"><strong class="text-ink">Verify:</strong> the log-tailing terminal should print an alert referencing a shell being spawned inside a container, naming the pod. That line is the entire point of module 6's runtime detection step made real.</p>
+          <div class="p-4 bg-ambersoft border border-amber/30 rounded-md">
+            <p class="text-sm text-ink"><strong>This is the lab most likely to need troubleshooting on WSL2.</strong> Falco reads raw kernel events, and WSL2 runs a custom, Microsoft-maintained kernel — the older kernel-module driver won't build there at all. The <code class="mono text-xs bg-white px-1 rounded">modern_ebpf</code> driver used above is Falco's current default and works via CO-RE on most kernels 5.8+, which gives it a real chance on WSL2, but it isn't guaranteed. If the Falco pod crash-loops or logs eBPF verifier errors, this one lab is worth running on a real Linux box, a cloud VM, or a managed cluster (GKE/EKS) instead — everything else in this guide stays the same either way.</p>
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <!-- MODULE 9 -->
+    <section id="module-09" class="py-16 scroll-mt-20">
+      <div class="flex items-baseline gap-4 mb-8">
+        <span class="module-index text-3xl text-teal">09</span>
+        <h2 class="text-2xl md:text-3xl font-semibold text-ink">Test your understanding</h2>
+      </div>
+      <p class="text-subink max-w-2xl mb-2 leading-relaxed">
+        Ten questions across everything above. Pick an answer, check it, and read the explanation either way — that's where the retention actually happens.
+      </p>
+      <p class="text-sm font-medium text-ink mb-8">Score: <span id="quizScore">0</span> / <span id="quizTotal">0</span></p>
+      <div id="quizContainer" class="space-y-5"></div>
+    </section>
+
+    <footer class="py-12 border-t border-line text-sm text-subink flex flex-col sm:flex-row items-center justify-between gap-4">
+      <div>Field manual — internal reference for cluster hardening reviews.</div>
+      <div class="text-xs opacity-75">
+        sachin godse - <a href="mailto:lgtkgtv@gmail.com" class="hover:underline">lgtkgtv@gmail.com</a>
+      </div>
+    </footer>
+  </main>
+
+  <script>
+    function runAudit() {
+      const btn = document.getElementById('auditBtn');
+      const cis = document.getElementById('cisMetric');
+      const runtime = document.getElementById('runtimeMetric');
+      const violation = document.getElementById('violationMetric');
+      const grade = document.getElementById('gradeMetric');
+      btn.disabled = true;
+      btn.textContent = 'Running audit…';
+      btn.classList.add('opacity-60', 'cursor-not-allowed');
+      setTimeout(() => {
+        cis.textContent = '98.7%';
+        runtime.textContent = '3';
+        violation.textContent = '1';
+        grade.textContent = 'A';
+        btn.disabled = false;
+        btn.textContent = 'Run automated audit';
+        btn.classList.remove('opacity-60', 'cursor-not-allowed');
+      }, 1100);
+    }
+    function toggleAccordion(contentId, arrowId) {
+      const content = document.getElementById(contentId);
+      const arrow = document.getElementById(arrowId);
+      const isHidden = content.classList.contains('hidden');
+      content.classList.toggle('hidden');
+      arrow.style.transform = isHidden ? 'rotate(180deg)' : 'rotate(0deg)';
+    }
+
+    const quizData = [
+      { q: "What is etcd's main job in a Kubernetes cluster?", options: ["Runs containers on the node", "Stores cluster state, including Secrets", "Schedules pods onto nodes", "Watches syscalls for anomalies"], correct: 1, explain: "etcd is the cluster's state store — everything the API server persists, including Secrets, lives there." },
+      { q: "In a request's lifecycle, which checkpoint runs first?", options: ["Admission control", "Authorization (RBAC)", "Authentication", "Persisting to etcd"], correct: 2, explain: "You must prove who you are before the system can check what you're allowed to do." },
+      { q: "Which of the 4Cs sits closest to what a developer actually writes?", options: ["Cloud", "Cluster", "Container", "Code"], correct: 3, explain: "Code is the innermost layer — your application logic and its dependencies." },
+      { q: "What does a default-deny NetworkPolicy do?", options: ["Blocks all traffic until you explicitly allow specific paths", "Encrypts all pod traffic automatically", "Deletes any pod that receives unexpected traffic", "Only applies to traffic leaving the cluster"], correct: 0, explain: "Default-deny flips the starting assumption: nothing talks to anything until you write a rule that allows it." },
+      { q: "Which Pod Security Standard should be the default for most application namespaces?", options: ["Privileged", "Baseline", "Restricted", "Unrestricted"], correct: 2, explain: "Restricted enforces current pod hardening best practice and should be the norm, not the exception." },
+      { q: "Why sandbox an AI inference workload with gVisor or Kata Containers?", options: ["It makes the model more accurate", "It reduces GPU cost", "It contains what a compromised or manipulated agent can reach", "It's required for every container regardless of workload"], correct: 2, explain: "Sandboxing limits the blast radius if a tool-using agent is tricked via prompt injection into executing unintended commands." },
+      { q: "What's the main difference between the CIS Benchmark and the OWASP Kubernetes Top 10?", options: ["They cover the same things, worded differently", "CIS checks configuration correctness; OWASP lists common real-world risk categories", "CIS is AWS-only, OWASP is GKE-only", "OWASP replaced CIS in 2024"], correct: 1, explain: "CIS is a configuration checklist. OWASP's Top 10 is a risk taxonomy — the categories of things that tend to go wrong." },
+      { q: "In the reference GitHub Actions pipeline, what does permissions: id-token: write enable?", options: ["Faster builds", "The runner can request a short-lived OIDC token to authenticate to a cloud provider", "Admin access to the whole repository", "It's required for every workflow regardless of purpose"], correct: 1, explain: "It lets the runner exchange a GitHub-issued OIDC token for a short-lived cloud credential — no static keys stored as secrets." },
+      { q: "On AWS EKS, what's currently recommended for new workloads on EC2 nodes?", options: ["Long-lived IAM access keys as Secrets", "IRSA only", "EKS Pod Identity", "The shared EC2 instance profile"], correct: 2, explain: "EKS Pod Identity is the current recommendation for new EC2-node workloads; IRSA remains relevant for Fargate or mid-migration clusters." },
+      { q: "When does HIPAA become relevant to a given client engagement, per this manual's tiering?", options: ["Always, for every client", "Only when the client's workload handles Protected Health Information", "Only for clients based in the EU", "Never — it's out of scope for Kubernetes"], correct: 1, explain: "HIPAA is Tier 2 because it's scoped per-engagement — it only applies once PHI is actually in play, unlike SOC 2 and PCI-DSS." }
+    ];
+
+    function renderQuiz() {
+      const container = document.getElementById('quizContainer');
+      document.getElementById('quizTotal').textContent = quizData.length;
+      quizData.forEach((item, i) => {
+        const card = document.createElement('fieldset');
+        card.className = 'border border-line rounded-lg p-5';
+        const optionsHtml = item.options.map((opt, j) =>
+          `<label class="flex items-center gap-3 p-2 rounded hover:bg-surface cursor-pointer text-sm text-ink">
+             <input type="radio" name="q${i}" value="${j}" class="accent-current" style="accent-color:#1D4E4B">
+             ${opt}
+           </label>`
+        ).join('');
+        card.innerHTML = `
+          <legend class="text-sm font-medium text-ink mb-3 px-0">${i + 1}. ${item.q}</legend>
+          <div class="space-y-1 mb-3">${optionsHtml}</div>
+          <button type="button" class="focus-ring text-sm font-medium text-teal border border-teal rounded-md px-3 py-1.5 hover:bg-tealsoft transition-colors" onclick="checkQuizAnswer(${i}, this)">Check answer</button>
+          <p id="feedback${i}" class="text-sm mt-3 hidden"></p>
+        `;
+        container.appendChild(card);
+      });
+    }
+
+    let quizScoreCount = 0;
+    function checkQuizAnswer(index, btn) {
+      const card = btn.closest('fieldset');
+      const selected = card.querySelector(`input[name="q${index}"]:checked`);
+      const feedback = document.getElementById(`feedback${index}`);
+      if (!selected) {
+        feedback.textContent = 'Pick an answer first.';
+        feedback.className = 'text-sm mt-3 text-amber';
+        return;
+      }
+      const isCorrect = parseInt(selected.value, 10) === quizData[index].correct;
+      feedback.textContent = (isCorrect ? 'Correct. ' : 'Not quite. ') + quizData[index].explain;
+      feedback.className = 'text-sm mt-3 ' + (isCorrect ? 'text-teal' : 'text-rust');
+      card.querySelectorAll('input').forEach(inp => inp.disabled = true);
+      btn.disabled = true;
+      btn.classList.add('opacity-50', 'cursor-not-allowed');
+      quizScoreCount += isCorrect ? 1 : 0;
+      document.getElementById('quizScore').textContent = quizScoreCount;
+    }
+
+    renderQuiz();
+  </script>
+
+</body>
+</html>

@@ -1,0 +1,428 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Training AI Models on Kubernetes — Interactive Deck</title>
+<script src="https://cdn.tailwindcss.com"></script>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Source+Serif+4:opsz,wght@8..60,400;8..60,600;8..60,700&family=Inter:wght@400;500;600;700&family=IBM+Plex+Mono:wght@400;500;600&display=swap" rel="stylesheet">
+<script src="https://cdnjs.cloudflare.com/ajax/libs/marked/11.1.1/marked.min.js"></script>
+<script>
+  tailwind.config = {
+    theme: { extend: {
+      colors: { ink:'#14181F', subink:'#4B5563', surface:'#F6F7F9', line:'#E2E5EA',
+                teal:'#1D4E4B', tealsoft:'#E8F0EF', rust:'#A8412B', rustsoft:'#FBECE8',
+                amber:'#8A5A12', ambersoft:'#FBF2E1' },
+      fontFamily: { serif:['"Source Serif 4"','Georgia','serif'], sans:['Inter','system-ui','sans-serif'], mono:['"IBM Plex Mono"','monospace'] }
+    }}
+  }
+</script>
+<style>
+  html,body{height:100%;}
+  body{font-family:'Inter',system-ui,sans-serif;}
+  h1,h2,h3,.serif{font-family:'Source Serif 4',Georgia,serif;}
+  code,.mono{font-family:'IBM Plex Mono',monospace;}
+  ::selection{background:#E8F0EF;color:#14181F;}
+  .focus-ring:focus-visible{outline:2px solid #1D4E4B;outline-offset:2px;}
+  @media (prefers-reduced-motion: reduce){*{transition:none !important;}}
+  #slideStage{ animation: fadeIn .18s ease; }
+  @keyframes fadeIn{ from{opacity:0; transform: translateY(4px);} to{opacity:1; transform: translateY(0);} }
+  .deeper-prose h2{font-family:'Source Serif 4',Georgia,serif;font-size:1.25rem;font-weight:600;color:#14181F;margin-top:1.25rem;margin-bottom:.75rem;}
+  .deeper-prose h2:first-child{margin-top:0;}
+  .deeper-prose h3{font-size:1.05rem;font-weight:600;color:#14181F;margin-top:1rem;margin-bottom:.5rem;}
+  .deeper-prose p{color:#14181F;line-height:1.65;margin-bottom:.75rem;}
+  .deeper-prose ul,.deeper-prose ol{margin-bottom:.75rem;padding-left:1.25rem;}
+  .deeper-prose li{color:#14181F;line-height:1.6;margin-bottom:.35rem;}
+  .deeper-prose ul{list-style:disc;}
+  .deeper-prose ol{list-style:decimal;}
+  .deeper-prose strong{font-weight:600;color:#14181F;}
+  .deeper-prose code{font-family:'IBM Plex Mono',monospace;background:#F6F7F9;padding:.1rem .3rem;border-radius:.25rem;font-size:.85em;}
+  .deeper-prose pre{background:#14181F;color:#fff;padding:1rem;border-radius:.5rem;overflow-x:auto;margin-bottom:.75rem;}
+  .deeper-prose pre code{background:none;padding:0;color:inherit;}
+  .deeper-prose table{width:100%;border-collapse:collapse;margin-bottom:1rem;font-size:.875rem;}
+  .deeper-prose th{background:#F6F7F9;text-align:left;padding:.5rem .75rem;border-bottom:1px solid #E2E5EA;font-weight:500;color:#4B5563;}
+  .deeper-prose td{padding:.5rem .75rem;border-bottom:1px solid #E2E5EA;color:#4B5563;vertical-align:top;}
+</style>
+</head>
+<body class="bg-white text-ink antialiased flex flex-col h-screen overflow-hidden">
+
+  <!-- Top bar -->
+  <header class="border-b border-line px-4 sm:px-6 py-3 flex items-center justify-between gap-3 flex-shrink-0">
+    <div class="flex items-center gap-3 min-w-0">
+      <a href="./index.html" class="text-xs text-subink hover:text-ink flex items-center gap-1 mr-1 transition-colors" title="Kubernetes Tutorials Hub">
+        <svg class="h-3.5 w-3.5" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M19 12H5M12 19l-7-7 7-7"/></svg>
+        <span class="hidden md:inline font-medium">K8s Track</span>
+      </a>
+      <span class="h-2 w-2 rounded-full bg-teal flex-shrink-0"></span>
+      <span class="text-sm text-subink truncate" id="chapterLabel">Training AI Models on Kubernetes</span>
+    </div>
+    <div class="flex items-center gap-2 sm:gap-3 flex-shrink-0">
+      <a href="./step-by-step.html" class="hidden lg:inline text-xs text-subink hover:text-teal transition-colors">Step-by-Step Deck &rarr;</a>
+      <a href="./security-field-manual.html" class="hidden lg:inline text-xs text-subink hover:text-teal transition-colors">Security Manual &rarr;</a>
+      <span class="hidden sm:inline text-xs text-subink" id="quizScoreLabel"></span>
+      <button id="copyMdBtn" onclick="copySlideMarkdown()" class="focus-ring flex items-center gap-1.5 text-xs font-medium text-teal border border-teal rounded-md px-2.5 py-1.5 hover:bg-tealsoft transition-colors">
+        <svg viewBox="0 0 24 24" class="h-3.5 w-3.5 flex-shrink-0" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="9" y="9" width="13" height="13" rx="2"/><path d="M5 15H4a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h9a2 2 0 0 1 2 2v1"/></svg>
+        <span class="hidden sm:inline" id="copyMdLabel">Copy as Markdown</span>
+        <span class="sm:hidden" id="copyMdLabelShort">Copy</span>
+      </button>
+      <select id="jumpSelect" class="text-xs border border-line rounded-md px-2 py-1.5 bg-white text-subink focus-ring max-w-[100px] sm:max-w-none"></select>
+      <span class="text-xs text-subink font-medium tabular-nums" id="slideCounter">1 / 1</span>
+    </div>
+  </header>
+
+  <!-- Progress bar -->
+  <div class="h-1 bg-line flex-shrink-0">
+    <div id="progressBar" class="h-1 bg-teal transition-all duration-200" style="width:0%"></div>
+  </div>
+
+  <!-- Stage -->
+  <main class="flex-1 overflow-y-auto px-4 sm:px-10 py-8 sm:py-12">
+    <div id="slideStage" class="max-w-4xl mx-auto"></div>
+  </main>
+
+  <!-- Bottom nav -->
+  <footer class="border-t border-line px-4 sm:px-6 py-2.5 flex items-center justify-between flex-shrink-0 text-xs text-subink">
+    <button id="prevBtn" class="focus-ring text-sm font-medium text-subink border border-line rounded-md px-4 py-1.5 hover:bg-surface transition-colors disabled:opacity-30 disabled:cursor-not-allowed">&larr; Prev</button>
+    <div class="flex items-center gap-4">
+      <span class="hidden sm:inline">Use &larr; &rarr; or the buttons</span>
+      <span class="hidden md:inline text-line">|</span>
+      <span class="hidden md:inline text-[11px] opacity-75">sachin godse - <a href="mailto:lgtkgtv@gmail.com" class="hover:underline">lgtkgtv@gmail.com</a></span>
+    </div>
+    <button id="nextBtn" class="focus-ring text-sm font-medium text-white bg-teal rounded-md px-4 py-1.5 hover:bg-[#163e3c] transition-colors disabled:opacity-30 disabled:cursor-not-allowed">Next &rarr;</button>
+  </footer>
+
+  <!-- Deeper insight modal -->
+  <div id="deeperModal" class="hidden fixed inset-0 z-50 flex items-center justify-center p-4 sm:p-8">
+    <div id="deeperBackdrop" class="absolute inset-0 bg-ink/40"></div>
+    <div class="relative bg-white rounded-xl shadow-xl max-w-2xl w-full max-h-[85vh] overflow-y-auto border border-line">
+      <div class="sticky top-0 bg-white border-b border-line px-6 py-4 flex items-center justify-between">
+        <span class="text-sm font-medium text-teal">Deeper insight</span>
+        <button id="deeperCloseBtn" class="focus-ring text-subink hover:text-ink" aria-label="Close">
+          <svg viewBox="0 0 24 24" class="h-5 w-5" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><path d="M18 6L6 18M6 6l12 12"/></svg>
+        </button>
+      </div>
+      <div id="deeperContent" class="px-6 py-5 deeper-prose"></div>
+    </div>
+  </div>
+
+<script>
+const SLIDES = [{"type": "title"}, {"type": "divider", "part": "Orientation", "track": "meta", "title": "Kubernetes for training large AI models", "sub": "Current, established techniques \u2014 built toward one goal: a real reference architecture for a startup"}, {"type": "concept", "part": "Orientation", "track": "meta", "title": "What this deck assumes, and what it doesn't", "bullets": ["It assumes you've covered the core Kubernetes and security material already \u2014 RBAC, NetworkPolicy, admission control, and the rest aren't re-explained here.", "It does not assume access to a supercomputer. Every recommendation is framed for a startup's real constraint: a handful of GPU nodes now, a credible path to more later.", "Every tool named here was checked against current documentation and 2026 production reports while building this deck \u2014 not recalled from memory alone, because this space moves fast."], "note": null}, {"type": "divider", "part": "1 \u00b7 Why K8s", "track": "meta", "title": "The honest case, including where it's the wrong tool", "sub": "Slurm didn't lose \u2014 the ecosystem around K8s just caught up"}, {"type": "concept", "part": "1 \u00b7 Why K8s", "track": "ops", "title": "What Kubernetes was missing for HPC-style training, until recently", "bullets": ["The default scheduler bin-packs pod by pod \u2014 it has no native concept of GPU topology, NUMA boundaries, or NVLink bandwidth between GPUs on the same node.", "Distributed training needs gang scheduling: all N pods of a job must start together, or none should start at all \u2014 vanilla Kubernetes has no such guarantee.", "For years, this is exactly why HPC shops defaulted to Slurm instead."], "note": null}, {"type": "concept", "part": "1 \u00b7 Why K8s", "track": "ops", "title": "What changed: the ecosystem, not Kubernetes core alone", "bullets": ["Topology-aware placement, gang scheduling, and tight network-fabric integration \u2014 the features that used to require Slurm \u2014 are now available on Kubernetes through a mature layer of operators and schedulers.", "Dynamic Resource Allocation (DRA) reached General Availability in Kubernetes 1.34, giving the scheduler a real, structured way to reason about accelerators instead of treating them as opaque integer counts.", "The result: by 2026, Kubernetes has become the default orchestration layer for AI infrastructure across most engineering organizations \u2014 not because it's simpler than Slurm, but because of portability and one ecosystem for both training and serving."], "note": null}, {"type": "concept", "part": "1 \u00b7 Why K8s", "track": "ops", "title": "When Kubernetes is still the wrong call for a startup", "bullets": ["A single researcher on a single 8-GPU box doesn't need an orchestrator at all \u2014 `torchrun` on bare metal is faster to set up and easier to debug.", "If your whole roadmap is inference-only (serving a fine-tuned open model), the training-specific tooling in this deck is mostly irrelevant \u2014 look at KServe/vLLM-focused infrastructure instead.", "Kubernetes earns its complexity the moment you have more than one training job competing for GPUs, more than one engineer running jobs, or a real path to scaling nodes \u2014 which, for a funded AI startup, is usually week one, not year two."], "note": null}, {"type": "quiz", "part": "1 \u00b7 Why K8s", "track": "meta", "q": "What capability, once missing from vanilla Kubernetes, was historically the strongest argument for using Slurm instead for distributed training?", "options": ["Container support", "Gang scheduling \u2014 all pods of a job starting together or not at all", "YAML configuration", "Logging"], "correct": 1, "explain": "Vanilla Kubernetes has no native concept of 'start all N pods together or none' \u2014 exactly what a distributed training job requires, and exactly what tools like Volcano and Kueue now add on top."}, {"type": "divider", "part": "2 \u00b7 GPU fundamentals", "track": "meta", "title": "How a GPU becomes a schedulable resource", "sub": "The device plugin era \u2014 still the baseline most clusters run today"}, {"type": "concept", "part": "2 \u00b7 GPU fundamentals", "track": "ops", "title": "The NVIDIA device plugin, the original mechanism", "bullets": ["Runs as a DaemonSet on every GPU node, discovers the physical GPUs, and advertises them to the kubelet as an extended resource: `nvidia.com/gpu`.", "A Pod requests GPUs the same way it requests CPU or memory \u2014 `resources.limits: {nvidia.com/gpu: 1}` \u2014 and the scheduler places it on a node with enough available.", "The limitation: to Kubernetes, a GPU is just an opaque integer. It has no idea if two requested GPUs are NVLink-connected or on opposite ends of the PCIe bus."], "note": null}, {"type": "concept", "part": "2 \u00b7 GPU fundamentals", "track": "ops", "title": "The NVIDIA GPU Operator: everything a GPU node needs, automated", "bullets": ["Bundles the driver installation, the device plugin, DCGM (monitoring), and the container toolkit into one Helm-installable operator \u2014 instead of hand-configuring each GPU node.", "Integrates with Node Feature Discovery (NFD) to label nodes with their GPU model, interconnect topology, and driver version \u2014 labels your scheduler and policies can then use directly."], "note": null}, {"type": "code", "part": "2 \u00b7 GPU fundamentals", "track": "ops", "title": "What a GPU request actually looks like", "lang": "yaml", "body": "resources:\n  limits:\n    nvidia.com/gpu: 8\nnodeSelector:\n  nvidia.com/gpu.product: NVIDIA-H100-80GB-HBM3", "note": "The node selector isn't decorative \u2014 the label came from NFD, populated by the GPU Operator, not hand-written by an admin."}, {"type": "quiz", "part": "2 \u00b7 GPU fundamentals", "track": "meta", "q": "In the classic NVIDIA device plugin model, how does Kubernetes represent a GPU to the scheduler?", "options": ["As a labeled, topology-aware object", "As an opaque extended resource \u2014 just an integer count, no topology information", "As a CRD with NVLink metadata", "GPUs cannot be scheduled without DRA"], "correct": 1, "explain": "This is exactly the limitation DRA was built to fix \u2014 the device plugin model works, but the scheduler genuinely cannot see interconnect topology through it."}, {"type": "divider", "part": "3 \u00b7 Modern GPU mgmt", "track": "meta", "title": "Where the ecosystem is actually headed in 2026", "sub": "DRA, partitioning, and a GPU-aware scheduler"}, {"type": "concept", "part": "3 \u00b7 Modern GPU mgmt", "track": "ops", "title": "Dynamic Resource Allocation (DRA), precisely", "bullets": ["DRA's core APIs (`resource.k8s.io/v1`) reached General Availability in Kubernetes 1.34 \u2014 a structured way to request and share hardware devices, not just count them.", "Instead of a bare integer, a workload requests a claim against a DeviceClass; the scheduler allocates a concrete device that satisfies it \u2014 bringing real topology and capability awareness into the allocation decision itself.", "NVIDIA donated its DRA driver for GPUs to CNCF at KubeCon Europe 2026, moving it from vendor-controlled to community-governed \u2014 a strong signal this is now the direction, not a vendor experiment.", "Kubernetes 1.37 continues expanding DRA specifically for large AI, GPU, and HPC workloads spanning multiple nodes and heterogeneous hardware."], "note": null, "deeper": "## ResourceClaim vs. ResourceClaimTemplate\n\nDRA introduces two related-but-different objects, and mixing them up is a common early mistake:\n\n- **`ResourceClaim`** \u2014 a standalone request for a device, created once and referenced by one or more Pods. Useful when several Pods in a job need to share the *same* allocated device (an NVLink-connected pair, for example).\n- **`ResourceClaimTemplate`** \u2014 a template a Pod spec references directly; Kubernetes creates a fresh `ResourceClaim` per Pod automatically. This is the common case for \"each of my 8 training workers needs its own GPU,\" and is what most Deployment-style or Job-style training workloads should reach for by default.\n\n**The mental model that keeps this straight:** a `ResourceClaimTemplate` is to a `ResourceClaim` roughly what a Deployment's pod template is to an actual Pod \u2014 a stamp that produces one per Pod, not a shared instance."}, {"type": "concept", "part": "3 \u00b7 Modern GPU mgmt", "track": "ops", "title": "GPU partitioning: MIG and time-slicing/MPS", "bullets": ["Multi-Instance GPU (MIG) on A100/H100 hardware splits one physical card into up to seven fully isolated instances (the `1g.10gb` profile on an 80GB A100, for example) \u2014 separate memory and separate fault domains, not just a software quota.", "Time-slicing and MPS are the software-only alternative: multiple workloads share a GPU without hardware isolation \u2014 cheaper hardware utilization, weaker isolation.", "As of now, DRA does not yet natively support time-slicing or MPS \u2014 that upstream work (KEP-5075, KEP-5691) is still pending, so today MIG is the more DRA-aligned path if you need to partition GPUs."], "note": null}, {"type": "concept", "part": "3 \u00b7 Modern GPU mgmt", "track": "ops", "title": "KAI Scheduler: a GPU-native secondary scheduler", "bullets": ["Open-sourced by NVIDIA in 2025, now a CNCF Sandbox project \u2014 runs alongside kube-scheduler specifically for GPU-aware bin-packing, preemption, and native GPU sharing.", "Where Kueue answers 'who gets to run and how much quota do they have,' KAI Scheduler and Volcano answer 'given that admission, how do we actually place these pods on the hardware efficiently.'"], "note": null}, {"type": "diagram", "part": "3 \u00b7 Modern GPU mgmt", "track": "ops", "title": "Where each piece sits in the stack", "svg": "<svg viewBox=\"0 0 700 220\" class=\"w-full\"><g font-family=\"Inter\" font-size=\"12\"><rect x=\"20\" y=\"20\" width=\"660\" height=\"50\" rx=\"8\" fill=\"#E8F0EF\" stroke=\"#1D4E4B\"/><text x=\"350\" y=\"50\" text-anchor=\"middle\" fill=\"#14181F\">Kueue \u2014 quota, queueing, which job is admitted at all</text><rect x=\"20\" y=\"85\" width=\"320\" height=\"50\" rx=\"8\" fill=\"#FBF2E1\" stroke=\"#8A5A12\"/><text x=\"180\" y=\"115\" text-anchor=\"middle\" fill=\"#14181F\">Volcano \u2014 gang scheduling (PodGroup)</text><rect x=\"360\" y=\"85\" width=\"320\" height=\"50\" rx=\"8\" fill=\"#FBF2E1\" stroke=\"#8A5A12\"/><text x=\"520\" y=\"115\" text-anchor=\"middle\" fill=\"#14181F\">KAI Scheduler \u2014 GPU bin-packing</text><rect x=\"20\" y=\"150\" width=\"660\" height=\"50\" rx=\"8\" fill=\"#FBECE8\" stroke=\"#A8412B\"/><text x=\"350\" y=\"180\" text-anchor=\"middle\" fill=\"#14181F\">DRA \u2014 the actual device allocation substrate (resource.k8s.io/v1)</text></g></svg>", "note": "These are complementary layers, not competing choices \u2014 most real clusters run several of these together."}, {"type": "quiz", "part": "3 \u00b7 Modern GPU mgmt", "track": "meta", "q": "What did DRA reaching GA in Kubernetes 1.34 fundamentally change?", "options": ["GPUs became free to schedule", "Device allocation moved from opaque integer counts to structured claims against device classes, enabling real topology and capability awareness", "MIG became mandatory", "Kueue was deprecated"], "correct": 1, "explain": "DRA changes where device knowledge lives \u2014 from an invisible integer to a claim the scheduler can actually reason about."}, {"type": "divider", "part": "4 \u00b7 Distributed patterns", "track": "meta", "title": "Why a training job isn't just 'more replicas'", "sub": "The parallelism strategies that decide your networking and scheduling requirements"}, {"type": "concept", "part": "4 \u00b7 Distributed patterns", "track": "ops", "title": "Data parallelism: the simplest, most common starting point", "bullets": ["Every GPU holds a full copy of the model; each processes a different slice of the batch, then gradients are synchronized (typically via all-reduce) before the next step.", "Scales well until the model itself no longer fits on one GPU \u2014 the point where data parallelism alone stops being enough."], "note": null}, {"type": "concept", "part": "4 \u00b7 Distributed patterns", "track": "ops", "title": "Tensor and pipeline parallelism: when the model doesn't fit", "bullets": ["Tensor parallelism splits individual layers' computations across GPUs \u2014 needs very high-bandwidth, low-latency interconnect (NVLink within a node) because it communicates on almost every operation.", "Pipeline parallelism splits the model by layer across GPUs or nodes, passing activations forward \u2014 more network-tolerant than tensor parallelism, but introduces pipeline bubbles (idle time) if not tuned carefully.", "Real large-model training combines all three \u2014 this is exactly what frameworks like DeepSpeed and Megatron-LM automate, rather than something you hand-roll."], "note": null, "deeper": "## The full picture: 3D parallelism and ZeRO\n\nReal large-model training rarely picks just one strategy \u2014 frameworks like DeepSpeed and Megatron-LM combine all three into what's commonly called **3D parallelism**:\n\n| Dimension | Splits | Typical scope |\n|---|---|---|\n| Data parallel | The batch | Across the whole cluster |\n| Tensor parallel | Individual layer computations | Within one node (NVLink domain) |\n| Pipeline parallel | The model's layers | Across nodes |\n\n**ZeRO (Zero Redundancy Optimizer)**, DeepSpeed's other major contribution, attacks a different problem: even *within* data parallelism, every GPU normally holds a full copy of the optimizer state, gradients, and parameters \u2014 hugely redundant. ZeRO stages progressively shard these across GPUs instead of replicating them:\n\n- **ZeRO-1**: shards optimizer state only\n- **ZeRO-2**: adds sharded gradients\n- **ZeRO-3**: adds sharded parameters themselves \u2014 enabling training models far larger than any single GPU's memory, without needing full tensor parallelism's tight interconnect requirement\n\n**Why this matters for your infrastructure decision:** ZeRO-3 is often what actually lets a startup train a bigger model on ordinary (non-InfiniBand) networking, because it trades some communication overhead for dramatically lower memory pressure \u2014 worth evaluating before assuming you need exotic networking (Part 7) just because the model is large."}, {"type": "concept", "part": "4 \u00b7 Distributed patterns", "track": "ops", "title": "Why this determines your infrastructure, not just your code", "bullets": ["Data parallelism can tolerate a slower network between nodes; tensor parallelism generally cannot \u2014 this single fact decides whether you need InfiniBand/RDMA or can get away with standard Ethernet.", "Every parallelism strategy above requires gang scheduling: a half-started job with only 5 of 8 workers running is not just slow, it's typically broken."], "note": null}, {"type": "quiz", "part": "4 \u00b7 Distributed patterns", "track": "meta", "q": "Which parallelism strategy places the tightest requirement on network bandwidth and latency between GPUs?", "options": ["Data parallelism", "Tensor parallelism", "Pipeline parallelism", "None \u2014 networking doesn't matter for training"], "correct": 1, "explain": "Tensor parallelism communicates on nearly every operation, which is why it's normally kept within a single node's NVLink domain rather than spread across nodes over ordinary networking."}, {"type": "divider", "part": "5 \u00b7 Orchestration", "track": "meta", "title": "Turning a training script into a Kubernetes-native job", "sub": "From per-framework operators to one unified API"}, {"type": "concept", "part": "5 \u00b7 Orchestration", "track": "ops", "title": "The legacy path: framework-specific operators", "bullets": ["PyTorchJob, TFJob, and MPIJob (from the original Kubeflow Training Operator) each defined a CRD tailored to one framework's distributed launch pattern.", "PyTorchJob, for instance, sets up the environment variables `torchrun` needs and lets PyTorch's own distributed APIs (including FSDP) handle the actual training strategy.", "This still works and is still deployed widely \u2014 but as of 2025/2026 it's the legacy path, being superseded by a unified successor."], "note": null}, {"type": "concept", "part": "5 \u00b7 Orchestration", "track": "ops", "title": "The current path: Kubeflow Trainer v2 and the TrainJob API", "bullets": ["A single CRD, `TrainJob`, replaces the separate per-framework operators \u2014 one API surface for PyTorch, TensorFlow, JAX, XGBoost, HuggingFace, DeepSpeed, and MPI workloads.", "It's built natively on top of JobSet (gang-scheduled, multi-group Kubernetes jobs) and LeaderWorkerSet \u2014 not a bespoke controller reimplementing that logic.", "It ships a Distributed Data Cache using Apache Arrow and DataFusion for zero-copy data streaming straight to GPU nodes, and framework-agnostic `PodFailurePolicy` and `SuccessPolicy` APIs \u2014 the latter lets a job stop early once its target objective is hit, saving GPU-hours."], "note": null, "deeper": "## Migration isn't usually a rewrite\n\nIf you already have PyTorchJob v1 manifests running in production, moving to TrainJob v2 is a real but bounded migration, not a from-scratch rewrite:\n\n- Your actual training code (the Python script `torchrun` launches) typically doesn't change at all \u2014 TrainJob still sets up the same environment variables PyTorch's distributed APIs expect.\n- What changes is the *manifest*: `pytorchReplicaSpecs.Master/Worker` collapses into `trainer.numNodes` plus a `ClusterTrainingRuntime` reference, which your platform team defines once and every team's TrainJob reuses.\n- Both APIs can coexist during a transition \u2014 there's no requirement to migrate every job on the same day, which matters if you have long-running or hard-to-reproduce training jobs already in flight.\n\n**The practical trigger for migrating a given team:** do it when they next need a capability v1 doesn't have (JAX/XGBoost support, the `SuccessPolicy` early-stop API, the built-in Distributed Data Cache) \u2014 not as a standalone infrastructure project with no immediate payoff."}, {"type": "code", "part": "5 \u00b7 Orchestration", "track": "ops", "title": "The API simplification, concretely", "lang": "yaml", "body": "# legacy PyTorchJob v1\napiVersion: kubeflow.org/v1\nkind: PyTorchJob\nspec:\n  pytorchReplicaSpecs:\n    Master: {replicas: 1, ...}\n    Worker: {replicas: 3, ...}\n\n# current TrainJob v2 \u2014 same shape, different API\napiVersion: trainer.kubeflow.org/v1alpha1\nkind: TrainJob\nspec:\n  runtimeRef: {kind: ClusterTrainingRuntime, name: torch-distributed}\n  trainer:\n    numNodes: 4\n    resourcesPerNode: {limits: {nvidia.com/gpu: \"4\"}}", "note": "Same underlying job, fewer framework-specific fields to remember \u2014 the ClusterTrainingRuntime absorbs that complexity."}, {"type": "concept", "part": "5 \u00b7 Orchestration", "track": "ops", "title": "Volcano: gang scheduling as its own layer", "bullets": ["Introduces the PodGroup abstraction: pods are scheduled as an atomic unit, so a distributed job's 8 workers either all start together or none do \u2014 no partial starts leaving GPUs idle waiting on the rest.", "As of 2026, described as the dominant choice specifically for enforcing gang scheduling across PyTorch, TensorFlow, and MPI jobs, with queue-based fairness so no single team monopolizes a shared node pool."], "note": null}, {"type": "quiz", "part": "5 \u00b7 Orchestration", "track": "meta", "q": "What does Kubeflow Trainer v2's TrainJob API replace, and what is it built on top of?", "options": ["Replaces Kubernetes itself; built on Docker", "Replaces the separate per-framework operators (PyTorchJob, TFJob, MPIJob); built on JobSet and LeaderWorkerSet", "Replaces Kueue; built on Volcano", "It's an entirely new scheduler, unrelated to prior tools"], "correct": 1, "explain": "TrainJob unifies what used to be separate framework-specific CRDs into one API, while relying on JobSet and LeaderWorkerSet to actually handle gang-scheduled pod groups underneath."}, {"type": "divider", "part": "6 \u00b7 Scheduling & tenancy", "track": "meta", "title": "Sharing scarce, expensive GPUs fairly", "sub": "Because GPUs are the resource every team is fighting over"}, {"type": "concept", "part": "6 \u00b7 Scheduling & tenancy", "track": "ops", "title": "Kueue: quota, queueing, and fairness", "bullets": ["Sits above the scheduler: decides whether a submitted job is admitted at all, based on ClusterQueue quotas, before the scheduler ever tries to place its pods.", "Supports topology-aware scheduling specifically for AI/ML workloads, where pod-to-pod bandwidth (which rack, which block) materially affects both runtime and cost.", "DRA-aware quota accounting exists in Kueue today, though it's still an early-stage integration \u2014 treat it as directionally correct, not yet as battle-hardened as CPU/memory quotas."], "note": null, "deeper": "## Cohorts: sharing quota without giving it away\n\nA detail worth knowing before you design your ClusterQueue layout: Kueue supports grouping multiple ClusterQueues into a **cohort**, which allows quota **borrowing** \u2014 a team with unused quota can lend idle capacity to another team's queue temporarily, without permanently reassigning it.\n\n**Why this matters for a startup specifically:** rigid per-team quotas (Team A gets 8 GPUs, Team B gets 8 GPUs, always) tend to leave capacity idle whenever one team isn't actively running jobs \u2014 exactly the utilization problem from Part 10, just caused by policy instead of scheduling. A cohort with borrowing lets you set those same nominal quotas as *fair-share targets* rather than hard walls, so idle capacity gets used by whoever currently needs it, while still reverting to the fair split the moment both teams are actually competing for GPUs."}, {"type": "concept", "part": "6 \u00b7 Scheduling & tenancy", "track": "ops", "title": "Priority, preemption, and what actually needs an SLA", "bullets": ["PriorityClass plus preemption lets an SLA-backed workload (a production fine-tuning job with a deadline) bump a best-effort exploratory job that can tolerate being requeued.", "The real design question for a startup: which jobs genuinely need guaranteed capacity, and which can run opportunistically? Most exploratory training does not need a hard SLA \u2014 treat capacity accordingly instead of over-provisioning for worst case."], "note": null}, {"type": "compare", "part": "6 \u00b7 Scheduling & tenancy", "track": "ops", "title": "The scheduling stack, who does what", "cols": ["Layer", "Answers", "Example tools"], "rows": [["Quota / admission", "Should this job be allowed to start at all, given current quota?", "Kueue"], ["Gang scheduling", "Do all of this job's pods start together, or none?", "Volcano, JobSet"], ["GPU-aware placement", "Given admission, which specific GPUs and nodes?", "KAI Scheduler, DRA"]], "note": null}, {"type": "quiz", "part": "6 \u00b7 Scheduling & tenancy", "track": "meta", "q": "What problem does Kueue solve that Volcano and KAI Scheduler don't?", "options": ["GPU topology awareness", "Whether a job is admitted at all, based on namespace/team quota, before scheduling even begins", "Gang scheduling of pod groups", "Container image scanning"], "correct": 1, "explain": "Kueue operates one layer up \u2014 admission and fairness across teams/queues \u2014 while Volcano and KAI Scheduler handle what happens once a job is admitted and needs to actually be placed."}, {"type": "divider", "part": "7 \u00b7 Networking", "track": "meta", "title": "The interconnect is usually the real bottleneck", "sub": "Not compute, not storage \u2014 the fabric between GPUs"}, {"type": "concept", "part": "7 \u00b7 Networking", "track": "ops", "title": "Why ordinary Ethernet often isn't enough", "bullets": ["Multi-node GPU training needs high-bandwidth, low-latency east-west traffic between nodes for gradient synchronization \u2014 without specialized networking, NCCL (NVIDIA's collective communication library) falls back to standard Ethernet and training times increase significantly.", "For multi-node LLM training specifically, the interconnect fabric is frequently the actual bottleneck \u2014 ahead of compute, memory, or storage."], "note": null}, {"type": "concept", "part": "7 \u00b7 Networking", "track": "ops", "title": "InfiniBand vs. RoCEv2, and GPUDirect RDMA", "bullets": ["InfiniBand is the traditional HPC fabric, purpose-built for this; RoCEv2 (RDMA over Converged Ethernet) gets similar benefits over Ethernet hardware, but in practice requires both PFC and ECN configured correctly on the switches to avoid packet loss under burst load.", "GPUDirect RDMA lets a network card read from and write to GPU memory directly, bypassing the CPU and system memory entirely \u2014 this is the actual mechanism that makes multi-node training fast, not just 'a fast network.'", "Cloud equivalents: AWS Elastic Fabric Adapter (EFA), Azure's RDMA-over-InfiniBand HPC VM sizes, and GCP's equivalents \u2014 all exist specifically so you don't have to rack your own InfiniBand switches to get this."], "note": null, "deeper": "## The cloud-specific names for the same idea\n\nEach major cloud brands its RDMA-capable networking differently \u2014 worth knowing so you're not searching for the wrong term in a given provider's docs:\n\n| Cloud | Their term | Underlying tech |\n|---|---|---|\n| AWS | Elastic Fabric Adapter (EFA) | Custom OS-bypass networking, works with NCCL via the AWS OFI NCCL plugin |\n| GCP | GPUDirect-TCPX / TCPXO | TCP-based GPUDirect variant tuned for GCP's network fabric |\n| Azure | InfiniBand-backed HPC VM sizes (e.g., `ND` series) | Traditional InfiniBand, closest to on-prem HPC networking |\n\n**The catch that trips people up on managed clouds:** even with the right instance type selected, these features are frequently opt-in \u2014 a specific placement group, a specific VPC/subnet configuration, or a specific machine image is often required to actually activate the fast path. Selecting an EFA-capable instance type does not automatically mean your training job is using EFA; verify with `nvidia-smi topo -m` and `nccl-tests`, exactly as the main slide recommends, on every new cluster configuration before trusting the instance type name alone."}, {"type": "code", "part": "7 \u00b7 Networking", "track": "ops", "title": "Verify it's actually working, don't assume", "lang": "bash", "body": "# See the real GPU-to-GPU and GPU-to-NIC topology\nnvidia-smi topo -m\n\n# Benchmark actual achieved bandwidth\ngit clone https://github.com/NVIDIA/nccl-tests && cd nccl-tests && make\nmpirun -np 8 -host node1:4,node2:4 ./build/all_reduce_perf -b 512M", "note": "If all_reduce_perf shows Ethernet-level bandwidth instead of the InfiniBand/EFA number you're paying for, GPUDirect RDMA usually isn't actually active \u2014 check this before blaming the model or the framework."}, {"type": "concept", "part": "7 \u00b7 Networking", "track": "ops", "title": "Topology-aware placement, tied back to scheduling", "bullets": ["The GPU Operator's NFD integration labels nodes with their interconnect topology; Kueue's topology-aware scheduling and KAI Scheduler both use these labels to keep a training job's pods physically close together on the fabric \u2014 not scattered.", "Scattering a tightly-coupled job across distant racks is one of the most common, and most expensive, unforced errors in early GPU cluster setups."], "note": null}, {"type": "quiz", "part": "7 \u00b7 Networking", "track": "meta", "q": "What does GPUDirect RDMA specifically enable?", "options": ["Faster CPU processing", "A network card reading from and writing to GPU memory directly, bypassing the CPU and system memory", "Automatic model parallelism", "Cheaper GPU pricing"], "correct": 1, "explain": "That direct GPU-to-NIC memory path, skipping the CPU entirely, is what actually makes multi-node training fast \u2014 the fabric type (InfiniBand/RoCE/EFA) is the carrier, GPUDirect RDMA is the mechanism."}, {"type": "divider", "part": "8 \u00b7 Storage", "track": "meta", "title": "Three different jobs, three different storage shapes", "sub": "Dataset reads, checkpoint bursts, and inference caches don't share one answer"}, {"type": "concept", "part": "8 \u00b7 Storage", "track": "ops", "title": "The three storage patterns training actually produces", "bullets": ["Dataset ingestion: large sequential reads of multi-GB training files \u2014 the bottleneck is aggregate read throughput to GPU nodes, well suited to object storage (S3, GCS) for raw data or a parallel filesystem for repeated hot access.", "Checkpoint storage: bursty, high-bandwidth writes at regular intervals \u2014 large model checkpoints can be 100GB to multiple terabytes, and if the write stalls, GPUs sit idle waiting for it to finish.", "Both compete for the same storage fabric simultaneously in a real cluster, alongside any inference or preprocessing also running there."], "note": null}, {"type": "concept", "part": "8 \u00b7 Storage", "track": "ops", "title": "Parallel filesystems: the answer when object storage isn't fast enough", "bullets": ["Lustre-based options \u2014 self-managed, AWS FSx for Lustre, or GCP's Managed Lustre \u2014 deliver sub-millisecond latency and hundreds of GB/s throughput, which is what keeps expensive GPUs from idling on I/O.", "The recommended pattern: object storage as the durable source of truth for raw datasets, a parallel filesystem as a fast cache layer in front of it for actual training and checkpoint I/O.", "One production report: adding a Lustre-based cache layer for checkpoints delivered a 15x increase in checkpoint retrieval speed and cut job startup time by more than half."], "note": null, "deeper": "## The three-tier pattern in practice\n\nA concrete architecture worth using as a default, rather than reinventing per project:\n\n1. **Object storage (S3/GCS)** \u2014 the durable source of truth for raw datasets and long-term checkpoint archives. Cheap, durable, not fast enough for direct training I/O at scale.\n2. **Parallel filesystem (FSx for Lustre / GKE Managed Lustre)** \u2014 a fast cache layer in front of it, populated from object storage at job start, serving actual training reads and checkpoint writes during the run.\n3. **Local NVMe scratch** \u2014 node-local, for the hottest data (the current shard a specific worker is actively reading) where even the parallel filesystem's network hop is worth avoiding.\n\n**Why not skip straight to local NVMe everywhere:** it doesn't survive a node replacement or Pod rescheduling \u2014 anything that needs to persist past a single Pod's lifetime has to live in tier 1 or 2. Local NVMe is a performance layer, not a durability layer.\n\n**The tiering decision in one sentence:** durability lives in object storage, performance lives in the parallel filesystem, and local NVMe is an optimization you add only after profiling shows the parallel filesystem itself is the bottleneck \u2014 not a default starting point."}, {"type": "concept", "part": "8 \u00b7 Storage", "track": "ops", "title": "The metric that actually matters: checkpoint overlap", "bullets": ["Checkpoint overlap is the fraction of total training time spent waiting on checkpoint I/O \u2014 industry practice targets under 10%.", "Every percentage point above that is GPU-hours spent waiting, not training \u2014 at real GPU pricing, this is usually a bigger cost lever than the storage tier's sticker price."], "note": null}, {"type": "compare", "part": "8 \u00b7 Storage", "track": "ops", "title": "Picking a storage tier by scale", "cols": ["Cluster size", "Reasonable default", "Why"], "rows": [["Under ~64 GPUs", "Managed parallel filesystem via CSI driver (FSx for Lustre / GKE Managed Lustre)", "Kubernetes' orchestration overhead is negligible at this scale, and setup is fast"], ["Much larger, latency-critical training", "Bare-metal storage access, bypassing K8s CSI overhead", "At extreme scale, even small per-I/O overhead compounds \u2014 most startups won't hit this tier for a while"]], "note": null}, {"type": "quiz", "part": "8 \u00b7 Storage", "track": "meta", "q": "What's the industry rule-of-thumb target for checkpoint overlap during training?", "options": ["Under 50%", "Under 10% of total training time", "Exactly 0%, always", "There's no meaningful target"], "correct": 1, "explain": "Under 10% is the practical target \u2014 pushing it to literally zero usually costs more in storage infrastructure than the GPU-hours it would save."}, {"type": "divider", "part": "9 \u00b7 Fault tolerance", "track": "meta", "title": "Multi-day training runs will hit failures \u2014 plan for it, don't discover it", "sub": "Checkpointing, spot capacity, and graceful restarts"}, {"type": "concept", "part": "9 \u00b7 Fault tolerance", "track": "ops", "title": "Checkpointing is your actual insurance policy", "bullets": ["Periodic checkpointing lets a run resume from an intermediate state after preemption or hardware failure, instead of restarting from step zero.", "This is exactly why storage's checkpoint-write bandwidth (Part 8) is a training-speed concern, not just a storage-team concern \u2014 a slow checkpoint either wastes GPU time waiting, or gets skipped, which is worse."], "note": null, "deeper": "## Full checkpoints vs. sharded checkpoints\n\nA \"checkpoint\" isn't one strategy \u2014 the two common approaches trade off differently:\n\n- **Full checkpoint**: one process gathers the complete model state and writes a single file. Simple to reason about and restore from, but the gather step itself can stall training, and the single file becomes a write bottleneck at large model sizes.\n- **Sharded checkpoint**: each rank (worker) writes only its own portion of the state in parallel. Much faster to write at scale \u2014 this is what makes the \"under 10% checkpoint overlap\" target in Part 8 achievable for very large models \u2014 but restoring requires the same sharding topology (or a reshard step) rather than being a simple single-file load.\n\n**The practical implication for a growing startup:** full checkpoints are the right default while your models are small enough that writing them doesn't meaningfully stall training. The moment checkpoint overlap starts creeping toward or past that 10% target, sharded checkpointing (built into DeepSpeed and PyTorch's distributed checkpoint APIs) is the fix \u2014 not a bigger or faster single storage volume."}, {"type": "concept", "part": "9 \u00b7 Fault tolerance", "track": "ops", "title": "Spot and preemptible capacity: real savings, real risk", "bullets": ["Spot/preemptible GPU instances can meaningfully cut training cost \u2014 but a preemption is a hard interrupt with little warning, so it only works well combined with frequent checkpointing.", "Kubeflow Trainer's `PodFailurePolicy` API lets you distinguish 'this pod failed because of a transient issue, restart it' from 'this pod failed for a real reason, stop the whole job' \u2014 without that, a single flaky node can either kill an otherwise-healthy job or trigger a pointless full restart."], "note": null}, {"type": "concept", "part": "9 \u00b7 Fault tolerance", "track": "ops", "title": "Elastic training and early stopping", "bullets": ["Elastic training frameworks (PyTorch Elastic among them) can grow or shrink the worker count for a job mid-run \u2014 useful when spot capacity fluctuates, though it adds real operational complexity most startups should defer until they've outgrown simpler checkpoint/restart.", "`SuccessPolicy` in Kubeflow Trainer v2 stops a job early once its target objective is met \u2014 a small feature with an outsized cost impact for hyperparameter sweeps, where most runs don't need to finish their full budget."], "note": null}, {"type": "quiz", "part": "9 \u00b7 Fault tolerance", "track": "meta", "q": "Why does spot/preemptible GPU capacity only make sense combined with frequent checkpointing?", "options": ["It doesn't \u2014 checkpointing is unrelated", "Preemption is a hard interrupt with little warning; without a recent checkpoint, that progress is simply lost", "Spot instances checkpoint automatically", "Checkpointing prevents preemption from happening"], "correct": 1, "explain": "Spot savings only pay off if a preemption costs you at most a few minutes of lost progress \u2014 that's a direct function of how recent your last checkpoint is."}, {"type": "divider", "part": "10 \u00b7 Observability", "track": "meta", "title": "You cannot tune what you cannot see", "sub": "GPU utilization is the single most consequential metric on this whole stack"}, {"type": "concept", "part": "10 \u00b7 Observability", "track": "ops", "title": "The monitoring stack that actually gets used", "bullets": ["`nvidia-smi` and DCGM (Data Center GPU Manager) are the primary GPU-level data sources \u2014 DCGM ships as part of the GPU Operator, exporting Prometheus-compatible metrics.", "Kubernetes' own `metrics-server` covers CPU/memory for autoscaling decisions, but GPU utilization, memory, and thermal data comes from DCGM specifically, not from core Kubernetes metrics."], "note": null}, {"type": "concept", "part": "10 \u00b7 Observability", "track": "ops", "title": "The utilization problem, with real numbers", "bullets": ["A widely cited 2026 case study found a cluster running 20 inference jobs across 10 A100 GPUs averaging just 5% utilization \u2014 the majority of very expensive capacity sitting idle.", "A separate 2026 benchmark found clusters lacking topology-aware, dynamic resource allocation saw up to a 40% reduction in effective GPU utilization purely from scheduling mismatches.", "For a startup, this is the single highest-leverage thing to monitor \u2014 a GPU cluster that looks 'full' by pod count can still be running at a fraction of its real capacity."], "note": null, "deeper": "## \"5% utilization\" is rarely one single cause\n\nThat headline number in the case study usually decomposes into several distinct, separately-fixable problems:\n\n| Contributor | What it looks like | The fix |\n|---|---|---|\n| Idle time between jobs | GPUs allocated to a job that finished, not yet released | Tighter job scheduling / shorter queue turnaround |\n| Fractional GPU need | A job using 20% of a GPU's compute, holding 100% of it | MIG partitioning or time-slicing (Part 3) |\n| Memory-bound, not compute-bound | High memory usage, low SM (streaming multiprocessor) occupancy | Batch size tuning \u2014 often not a hardware problem at all |\n| I/O-starved | GPU waiting on data that hasn't arrived yet | Storage or networking fix (Parts 7, 8), not more GPUs |\n\n**Why this matters before you spend money:** \"utilization is low\" is a symptom, not a diagnosis \u2014 DCGM's per-metric breakdown (SM occupancy specifically, not just the headline utilization percentage) is what tells you which of these four you're actually looking at, and each has a completely different fix."}, {"type": "concept", "part": "10 \u00b7 Observability", "track": "ops", "title": "What to actually alert on", "bullets": ["Node failures, container restarts, and GPU errors \u2014 routed through Prometheus + Grafana or an equivalent log pipeline, not just checked manually.", "Falling GPU utilization on a job that should be compute-bound is usually an I/O or networking symptom (Parts 7 and 8), not a training-code problem \u2014 check the fabric and storage path before assuming the model is the issue."], "note": null}, {"type": "quiz", "part": "10 \u00b7 Observability", "track": "meta", "q": "In the cited 2026 case study, what was the actual average GPU utilization for a cluster running 20 inference jobs on 10 A100s?", "options": ["95%", "60%", "5%", "There was no measurable idle time"], "correct": 2, "explain": "Just 5% \u2014 a stark illustration of why utilization monitoring matters more than raw GPU count for cost efficiency."}, {"type": "divider", "part": "11 \u00b7 Cost optimization", "track": "meta", "title": "GPUs are the single largest line item \u2014 treat them that way", "sub": "Utilization, partitioning, and right-sizing, in that order"}, {"type": "concept", "part": "11 \u00b7 Cost optimization", "track": "ops", "title": "The three levers, ranked by typical impact", "bullets": ["Utilization first: fixing scheduling and topology issues (Parts 3, 6, 7) to close the gap between 'GPUs allocated' and 'GPUs doing useful work' is almost always the biggest lever, and it's free \u2014 no new hardware required.", "Partitioning second: MIG for genuinely small workloads (inference, small fine-tunes) means one expensive card serves multiple jobs instead of sitting mostly idle under one.", "Spot/preemptible last, and only once checkpointing (Part 9) is solid \u2014 savings on interruptible capacity are real, but only if interruption doesn't cost you meaningful re-work."], "note": null}, {"type": "concept", "part": "11 \u00b7 Cost optimization", "track": "ops", "title": "Right-sizing for a startup specifically", "bullets": ["Don't provision for your eventual scale on day one \u2014 the tooling in this deck (DRA, KAI Scheduler, multi-cluster federation) has real operational overhead that isn't worth paying before you need it.", "A managed Kubernetes service (GKE, EKS) with the GPU Operator and Kueue is a defensible starting point for most early-stage AI startups \u2014 add Volcano or KAI Scheduler when gang scheduling or bin-packing actually becomes your bottleneck, not preemptively."], "note": null}, {"type": "quiz", "part": "11 \u00b7 Cost optimization", "track": "meta", "q": "For a startup managing GPU spend, which lever typically has the biggest impact for the least new investment?", "options": ["Buying more GPUs", "Fixing utilization \u2014 closing the gap between allocated and actually-used GPU capacity", "Switching cloud providers", "Disabling monitoring to save overhead"], "correct": 1, "explain": "Utilization fixes are usually free (better scheduling and topology awareness) and address the same 5-40% waste figures cited earlier \u2014 cheaper and faster than adding hardware."}, {"type": "divider", "part": "12 \u00b7 Security", "track": "meta", "title": "The same principles from the security deck, applied to this specific stack", "sub": "Datasets and model weights are the crown jewels here"}, {"type": "concept", "part": "12 \u00b7 Security", "track": "sec", "title": "What's actually valuable to protect in this stack", "bullets": ["Training datasets \u2014 often containing sensitive, licensed, or customer data \u2014 and model weights themselves, which can represent months of compute spend condensed into a single directory.", "GPU capacity itself is a target: a compromised or misconfigured job can silently consume budget-breaking amounts of expensive compute."], "note": null}, {"type": "concept", "part": "12 \u00b7 Security", "track": "sec", "title": "Applying prior principles to this stack specifically", "bullets": ["Mount training datasets ReadOnlyMany when a job doesn't need to write to them, and encrypt at rest \u2014 the same storage-hardening pattern from earlier, applied to your most valuable data.", "Sandbox any inference or agentic workload that executes model-generated actions with gVisor or Kata Containers \u2014 training jobs are generally trusted code you wrote, but serving layers increasingly aren't.", "ResourceQuotas scoped specifically to `nvidia.com/gpu` (or the relevant DRA DeviceClass) per namespace or team prevent one misconfigured or malicious job from starving every other team's capacity \u2014 the accelerator-specific version of a lesson that applies to every shared resource."], "note": null, "deeper": "## A concrete egress control for model weights\n\nIf your platform trains or fine-tunes models on behalf of customers, the specific asset most worth protecting with an explicit control is **egress** \u2014 stopping a job (or a compromised job) from exfiltrating trained weights to an unexpected destination:\n\n```yaml\napiVersion: networking.k8s.io/v1\nkind: NetworkPolicy\nmetadata:\n  name: training-egress-allowlist\nspec:\n  podSelector:\n    matchLabels: {workload: training}\n  policyTypes: [\"Egress\"]\n  egress:\n  - to:\n    - namespaceSelector:\n        matchLabels: {name: model-registry}\n  - ports:\n    - port: 53\n      protocol: UDP    # DNS \u2014 see Part 6's egress gotcha\n```\n\nThis allows a training Pod to reach only your internal model registry namespace (plus DNS) \u2014 nothing else outbound. A job attempting to push weights to an arbitrary external endpoint, whether through a compromised dependency or a misconfigured job, simply cannot reach it.\n\n**The tradeoff to acknowledge:** this doesn't stop someone with legitimate access to the registry from exporting the weights through an approved path \u2014 the same limitation Part 8's \"Secret myth\" slide makes about encryption at rest. Egress control stops unauthorized exfiltration paths; it isn't a substitute for access control on the registry itself."}, {"type": "quiz", "part": "12 \u00b7 Security", "track": "meta", "q": "Why might a training startup need stronger isolation than namespaces plus NetworkPolicy provide?", "options": ["Namespaces are always sufficient for any use case", "If different paying customers' workloads share the same physical GPU hardware, soft isolation may not meet the trust boundary they expect", "NetworkPolicy doesn't work with GPUs", "Security doesn't apply to training workloads"], "correct": 1, "explain": "Once you have mutually distrusting tenants \u2014 not just internal teams \u2014 the same 'soft vs. hard multi-tenancy' question from the core security material applies, now with much more expensive hardware on the line."}, {"type": "divider", "part": "13 \u00b7 Capstone", "track": "meta", "title": "Putting it together \u2014 what to build now, and what to defer", "sub": "A phased, honest recommendation, not a hyperscale wishlist"}, {"type": "concept", "part": "13 \u00b7 Capstone", "track": "ops", "title": "Phase 1 \u2014 first GPU cluster (a handful to ~16 nodes)", "bullets": ["Managed Kubernetes (GKE or EKS) rather than self-hosted \u2014 you have neither the headcount nor the need to run your own control plane at this stage.", "NVIDIA GPU Operator for driver/toolkit/DCGM management, Kueue for basic quota and fairness across your (probably small) set of researchers, and Kubeflow Trainer v2 for launching distributed jobs through one consistent API.", "Object storage (S3/GCS) for datasets is enough at this scale; add a managed parallel filesystem (FSx for Lustre / GKE Managed Lustre) only once I/O-bound waiting becomes visible in your GPU utilization metrics, not before."], "note": null}, {"type": "concept", "part": "13 \u00b7 Capstone", "track": "ops", "title": "Phase 2 \u2014 growth (tens of nodes, multiple concurrent teams/jobs)", "bullets": ["Add Volcano or KAI Scheduler once gang-scheduling contention or bin-packing inefficiency actually shows up in your utilization dashboards \u2014 don't add scheduling complexity speculatively.", "This is the point to seriously evaluate InfiniBand/EFA-class networking if you're training models large enough to need multi-node tensor or pipeline parallelism \u2014 verify with `nccl-tests`, don't assume.", "Introduce PriorityClasses distinguishing SLA-backed work from exploratory research, and tighten ResourceQuotas per team now that more than one team is actually competing for the same hardware."], "note": null}, {"type": "concept", "part": "13 \u00b7 Capstone", "track": "ops", "title": "Phase 3 \u2014 scale (the DRA / multi-cluster tier)", "bullets": ["Adopt DRA-based scheduling in earnest once heterogeneous hardware (mixed GPU generations, multiple DeviceClasses) makes the old opaque-integer model genuinely inadequate.", "Multi-cluster federation (evaluated carefully \u2014 production adoption for distributed training specifically is still limited as of 2026) only once a single cluster's blast radius or capacity is itself the constraint.", "By this phase you likely have a dedicated platform team \u2014 this is deliberately the last thing on this list, not the first, because it's the tier with the highest operational cost per unit of benefit for anyone earlier than this."], "note": null}, {"type": "compare", "part": "13 \u00b7 Capstone", "track": "ops", "title": "The build order, at a glance", "cols": ["Phase", "Add this", "Skip this for now"], "rows": [["1 \u2014 First cluster", "GPU Operator, Kueue, Kubeflow Trainer v2, object storage", "Volcano/KAI, parallel filesystem, DRA, multi-cluster"], ["2 \u2014 Growth", "Volcano/KAI Scheduler, InfiniBand/EFA (if needed), PriorityClasses", "Multi-cluster federation, exotic elastic training"], ["3 \u2014 Scale", "DRA-based scheduling, evaluated multi-cluster", "Nothing \u2014 by now you have a platform team to make this call"]], "note": null, "deeper": "## What a Phase 1 bill of materials actually looks like\n\nConcretely, not just as a list of tool names \u2014 a representative (not prescriptive) Phase 1 setup for an early-stage startup:\n\n| Component | A reasonable Phase 1 choice |\n|---|---|\n| Cluster | Managed Kubernetes (GKE or EKS), single region |\n| GPU nodes | A handful of nodes with 4\u20138 GPUs each, on-demand initially |\n| GPU management | NVIDIA GPU Operator |\n| Scheduling | Kueue with one or two ClusterQueues (research vs. production) |\n| Training API | Kubeflow Trainer v2 (TrainJob) |\n| Dataset storage | Object storage (S3/GCS) directly \u2014 no parallel filesystem yet |\n| Monitoring | DCGM exporter + Prometheus + Grafana, watching utilization from day one |\n\n**What's deliberately absent:** InfiniBand/EFA, a parallel filesystem, Volcano/KAI Scheduler, DRA-based scheduling, and any multi-cluster setup. None of these are wrong choices in general \u2014 they're simply premature at this scale, per the phased build order, and each has real operational cost that a small team pays before getting proportional benefit from it."}, {"type": "concept", "part": "13 \u00b7 Capstone", "track": "ops", "title": "The one habit that pays off at every phase", "bullets": ["Watch GPU utilization from day one, not idle-vs-allocated pod counts \u2014 the 5% and 40% utilization figures cited earlier happened to teams that were monitoring the wrong number.", "Every tool in this deck exists to close the gap between 'GPUs we're paying for' and 'GPUs doing useful training work.' Measure that gap before deciding which tool closes it fastest for you."], "note": null}, {"type": "quiz", "part": "13 \u00b7 Capstone", "track": "meta", "q": "What's the recommended trigger for adding Volcano or KAI Scheduler to a growing GPU cluster?", "options": ["Add them on day one, always", "Add them once gang-scheduling contention or bin-packing inefficiency actually shows up in utilization data \u2014 not speculatively", "Never add them, they're deprecated", "Only after multi-cluster federation is in place"], "correct": 1, "explain": "The theme throughout this reference architecture: add operational complexity in response to a measured bottleneck, not in anticipation of scale you don't have yet."}, {"type": "divider", "part": "Where to go next", "track": "meta", "title": "You now have the map and the order to build it in", "sub": "Pair this with the security deck before anything here reaches a paying customer"}, {"type": "closing"}];
+
+const TRACK_STYLE = {
+  ops:  { label: 'Operational', cls: 'bg-tealsoft text-teal' },
+  sec:  { label: 'Security',    cls: 'bg-rustsoft text-rust' },
+  both: { label: 'Both',        cls: 'bg-ambersoft text-amber' },
+  meta: { label: 'Checkpoint',  cls: 'bg-surface text-subink' }
+};
+
+let current = 0;
+let quizScore = 0;
+let quizAnswered = 0;
+
+function trackBadge(track){
+  const t = TRACK_STYLE[track] || TRACK_STYLE.meta;
+  return `<span class="inline-block text-xs font-medium px-2 py-1 rounded ${t.cls} mb-4">${t.label}</span>`;
+}
+
+function esc(s){ return (s||'').replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;'); }
+
+function escMdCell(s){ return String(s||'').replace(/\|/g,'\\|').replace(/\n/g,' '); }
+
+function trackLabelFor(track){
+  const t = TRACK_STYLE[track] || TRACK_STYLE.meta;
+  return t.label;
+}
+
+function slideToMarkdown(s, idx){
+  const ctx = s.part ? `<!-- ${s.part} — slide ${idx+1} of ${SLIDES.length} -->\n\n` : `<!-- slide ${idx+1} of ${SLIDES.length} -->\n\n`;
+  let body = '';
+  switch(s.type){
+    case 'title':
+      body = `# ${document.title.replace(' — Interactive Deck','')}\n\nAn interactive walkthrough — ${SLIDES.length} slides.\n`;
+      break;
+    case 'divider':
+      body = `## ${s.part}\n\n### ${s.title}\n\n${s.sub}\n`;
+      break;
+    case 'bridge':
+      body = `> **${s.title}**\n>\n> ${s.body}\n`;
+      break;
+    case 'concept':
+      body = `### ${s.title}\n\n*${trackLabelFor(s.track)}*\n\n`
+           + s.bullets.map(b => `- ${b}`).join('\n')
+           + (s.note ? `\n\n> ${s.note}` : '') + '\n';
+      break;
+    case 'code':
+      body = `### ${s.title}\n\n*${trackLabelFor(s.track)}*\n\n\`\`\`${s.lang || ''}\n${s.body}\n\`\`\`\n`
+           + (s.note ? `\n> ${s.note}\n` : '');
+      break;
+    case 'diagram':
+      body = `### ${s.title}\n\n*${trackLabelFor(s.track)}*\n\n_(Diagram — see the interactive deck for the visual)_\n`
+           + (s.note ? `\n> ${s.note}\n` : '');
+      break;
+    case 'compare': {
+      const head = `| ${s.cols.join(' | ')} |`;
+      const sep = `| ${s.cols.map(() => '---').join(' | ')} |`;
+      const rows = s.rows.map(r => `| ${r.map(escMdCell).join(' | ')} |`).join('\n');
+      body = `### ${s.title}\n\n${head}\n${sep}\n${rows}\n` + (s.note ? `\n> ${s.note}\n` : '');
+      break;
+    }
+    case 'lab':
+      body = `### Try it — Lab ${s.labnum}: ${s.labname}\n\n${s.note}\n\n_Full steps and verification commands are in the field manual's hands-on labs module._\n`;
+      break;
+    case 'quiz': {
+      const opts = s.options.map((o,i) => `- [${i === s.correct ? 'x' : ' '}] ${o}`).join('\n');
+      body = `### Checkpoint quiz\n\n**${s.q}**\n\n${opts}\n\n**Explanation:** ${s.explain}\n`;
+      break;
+    }
+    case 'closing':
+      body = `## Done\n\nCheckpoint quiz score this session: ${quizScore}/${quizAnswered}\n`;
+      break;
+    default:
+      body = '';
+  }
+  return ctx + body;
+}
+
+function fallbackCopy(text){
+  const ta = document.createElement('textarea');
+  ta.value = text;
+  ta.style.position = 'fixed';
+  ta.style.left = '-9999px';
+  document.body.appendChild(ta);
+  ta.select();
+  try { document.execCommand('copy'); } catch(e){ /* no-op */ }
+  document.body.removeChild(ta);
+}
+
+function showCopyFeedback(success){
+  const full = document.getElementById('copyMdLabel');
+  const short = document.getElementById('copyMdLabelShort');
+  const fullOriginal = 'Copy as Markdown';
+  const shortOriginal = 'Copy';
+  full.textContent = success ? 'Copied ✓' : 'Copy failed';
+  short.textContent = success ? 'Copied ✓' : 'Failed';
+  setTimeout(() => { full.textContent = fullOriginal; short.textContent = shortOriginal; }, 1500);
+}
+
+function copySlideMarkdown(){
+  const md = slideToMarkdown(SLIDES[current], current);
+  if (navigator.clipboard && navigator.clipboard.writeText){
+    navigator.clipboard.writeText(md).then(
+      () => showCopyFeedback(true),
+      () => { fallbackCopy(md); showCopyFeedback(true); }
+    );
+  } else {
+    fallbackCopy(md);
+    showCopyFeedback(true);
+  }
+}
+
+function renderBullets(bullets){
+  return `<ul class="space-y-3">${bullets.map(b=>`<li class="flex gap-3 text-ink leading-relaxed"><span class="text-teal mt-1.5 flex-shrink-0">&#9679;</span><span>${b}</span></li>`).join('')}</ul>`;
+}
+
+function renderSlide(s){
+  if (s.type === 'title'){
+    return `<div class="flex flex-col items-center justify-center text-center min-h-[55vh]">
+      <p class="text-sm text-subink mb-4 tracking-wide">An interactive walkthrough</p>
+      <h1 class="text-4xl sm:text-5xl font-semibold serif text-ink mb-6 max-w-2xl">Training AI Models on Kubernetes</h1>
+      <p class="text-subink max-w-xl leading-relaxed">${SLIDES.length} slides. Current, verified 2026 techniques — GPU scheduling, distributed training, networking, storage, and cost — building toward a concrete reference architecture for a startup.</p>
+    </div>`;
+  }
+  if (s.type === 'closing'){
+    return `<div class="flex flex-col items-center justify-center text-center min-h-[55vh]">
+      <h1 class="text-3xl sm:text-4xl font-semibold serif text-ink mb-6 max-w-xl">That's the full picture.</h1>
+      <p class="text-subink max-w-xl leading-relaxed mb-2">Your score this session: <span class="font-medium text-ink" id="finalScore"></span></p>
+      <p class="text-subink max-w-xl leading-relaxed mb-6">The phased reference architecture in the final chapter is the part worth revisiting as you actually build — pair it with the <a href="./security-field-manual.html" class="text-teal font-medium underline">security field manual</a> and the <a href="./step-by-step.html" class="text-teal font-medium underline">step-by-step deck</a> before any of this touches a paying customer.</p>
+      <div class="flex flex-wrap items-center justify-center gap-3">
+        <a href="./index.html" class="focus-ring text-xs font-medium text-teal border border-teal rounded-md px-3.5 py-2 hover:bg-tealsoft transition-colors">&larr; K8s Hub</a>
+        <a href="./step-by-step.html" class="focus-ring text-xs font-medium text-subink border border-line rounded-md px-3.5 py-2 hover:bg-surface transition-colors">Step by Step Deck &rarr;</a>
+        <a href="./security-field-manual.html" class="focus-ring text-xs font-medium text-white bg-teal rounded-md px-3.5 py-2 hover:bg-[#163e3c] transition-colors">Security Field Manual &rarr;</a>
+      </div>
+    </div>`;
+  }
+  if (s.type === 'divider'){
+    return `<div class="flex flex-col justify-center min-h-[50vh]">
+      <p class="text-sm font-medium text-teal mb-3">${esc(s.part)}</p>
+      <h2 class="text-3xl sm:text-4xl font-semibold serif text-ink mb-4 max-w-2xl">${esc(s.title)}</h2>
+      <p class="text-lg text-subink max-w-xl">${esc(s.sub)}</p>
+    </div>`;
+  }
+  if (s.type === 'bridge'){
+    return `<div class="flex flex-col justify-center min-h-[45vh] border-l-4 border-amber pl-6">
+      <p class="text-xs font-medium text-amber mb-3">Switching lens</p>
+      <h2 class="text-2xl sm:text-3xl font-semibold serif text-ink mb-4">${esc(s.title)}</h2>
+      <p class="text-subink max-w-xl leading-relaxed">${esc(s.body)}</p>
+    </div>`;
+  }
+  if (s.type === 'concept'){
+    return `${trackBadge(s.track)}<h2 class="text-2xl sm:text-3xl font-semibold text-ink mb-6">${esc(s.title)}</h2>${renderBullets(s.bullets)}${s.note?`<p class="text-sm text-subink mt-6 pt-4 border-t border-line">${esc(s.note)}</p>`:''}`;
+  }
+  if (s.type === 'code'){
+    return `${trackBadge(s.track)}<h2 class="text-2xl sm:text-3xl font-semibold text-ink mb-6">${esc(s.title)}</h2>
+      <pre class="bg-ink text-white text-xs sm:text-sm mono p-5 rounded-lg overflow-x-auto leading-relaxed">${esc(s.body)}</pre>
+      ${s.note?`<p class="text-sm text-subink mt-4">${esc(s.note)}</p>`:''}`;
+  }
+  if (s.type === 'diagram'){
+    return `${trackBadge(s.track)}<h2 class="text-2xl sm:text-3xl font-semibold text-ink mb-6">${esc(s.title)}</h2>
+      <div class="border border-line rounded-lg p-6 overflow-x-auto">${s.svg}</div>
+      ${s.note?`<p class="text-sm text-subink mt-4">${esc(s.note)}</p>`:''}`;
+  }
+  if (s.type === 'compare'){
+    const head = s.cols.map(c=>`<th class="p-3 font-medium border-b border-line text-left">${esc(c)}</th>`).join('');
+    const rows = s.rows.map(r=>`<tr>${r.map(c=>`<td class="p-3 text-subink align-top">${esc(c)}</td>`).join('')}</tr>`).join('');
+    return `${trackBadge(s.track)}<h2 class="text-2xl sm:text-3xl font-semibold text-ink mb-6">${esc(s.title)}</h2>
+      <div class="overflow-x-auto border border-line rounded-lg"><table class="w-full text-sm border-collapse"><thead><tr class="bg-surface">${head}</tr></thead><tbody class="divide-y divide-line">${rows}</tbody></table></div>
+      ${s.note?`<p class="text-sm text-subink mt-4">${esc(s.note)}</p>`:''}`;
+  }
+  if (s.type === 'lab'){
+    return `<div class="border-2 border-teal rounded-xl p-8 bg-tealsoft">
+      <p class="text-xs font-medium text-teal mb-2 uppercase tracking-wide">Try it — Lab ${esc(s.labnum)}</p>
+      <h2 class="text-2xl font-semibold text-ink mb-3">${esc(s.labname)}</h2>
+      <p class="text-ink leading-relaxed">${esc(s.note)}</p>
+      <p class="text-sm text-subink mt-4">Full steps and verification commands are in the <a href="./security-field-manual.html#module-08" class="text-teal underline font-medium">field manual's hands-on labs module</a>.</p>
+    </div>`;
+  }
+  if (s.type === 'quiz'){
+    const opts = s.options.map((o,i)=>`
+      <label class="flex items-center gap-3 p-3 rounded-md border border-line hover:bg-surface cursor-pointer text-sm text-ink">
+        <input type="radio" name="quizOpt" value="${i}" style="accent-color:#1D4E4B">${esc(o)}
+      </label>`).join('');
+    return `<div class="border-2 border-ink/10 rounded-xl p-6 sm:p-8">
+      <p class="text-xs font-medium text-subink mb-3 uppercase tracking-wide">Checkpoint quiz</p>
+      <h2 class="text-xl sm:text-2xl font-semibold text-ink mb-6">${esc(s.q)}</h2>
+      <div class="space-y-2 mb-5" id="quizOptions">${opts}</div>
+      <button id="quizCheckBtn" class="focus-ring text-sm font-medium text-white bg-teal rounded-md px-4 py-2 hover:bg-[#163e3c] transition-colors">Check answer</button>
+      <p id="quizFeedback" class="text-sm mt-4 hidden"></p>
+    </div>`;
+  }
+  return '';
+}
+
+function partIndexMap(){
+  const map = [];
+  let lastPart = null;
+  SLIDES.forEach((s,i)=>{
+    if (s.type === 'divider' && s.part !== lastPart){
+      map.push({part: s.part, title: s.title, index: i});
+      lastPart = s.part;
+    }
+  });
+  return map;
+}
+
+function buildJumpMenu(){
+  const sel = document.getElementById('jumpSelect');
+  const map = partIndexMap();
+  sel.innerHTML = map.map(m => `<option value="${m.index}">${esc(m.part)}</option>`).join('');
+  sel.addEventListener('change', () => { goTo(parseInt(sel.value,10)); });
+}
+
+function currentChapterLabel(i){
+  let label = 'Training AI Models on Kubernetes';
+  for (const s of SLIDES.slice(0, i+1)){
+    if (s.part) label = s.part;
+  }
+  return label;
+}
+
+function updateJumpSelectValue(i){
+  const sel = document.getElementById('jumpSelect');
+  const map = partIndexMap();
+  let best = map[0];
+  for (const m of map){ if (m.index <= i) best = m; else break; }
+  if (best) sel.value = String(best.index);
+}
+
+function render(){
+  const s = SLIDES[current];
+  document.getElementById('slideStage').innerHTML = renderSlide(s);
+  document.getElementById('slideCounter').textContent = `${current+1} / ${SLIDES.length}`;
+  document.getElementById('progressBar').style.width = `${((current+1)/SLIDES.length)*100}%`;
+  document.getElementById('chapterLabel').textContent = currentChapterLabel(current);
+  document.getElementById('prevBtn').disabled = current === 0;
+  document.getElementById('nextBtn').disabled = current === SLIDES.length - 1;
+  updateJumpSelectValue(current);
+  updateScoreLabel();
+
+  if (s.deeper){
+    const btn = document.createElement('button');
+    btn.className = 'focus-ring mt-6 flex items-center gap-2 text-sm font-medium text-amber border border-amber/40 rounded-md px-3 py-2 hover:bg-ambersoft transition-colors';
+    btn.innerHTML = `<svg viewBox="0 0 24 24" class="h-4 w-4 flex-shrink-0" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10"/><path d="M9.5 9a2.5 2.5 0 0 1 5 0c0 1.5-2.5 2-2.5 3.5"/><circle cx="12" cy="17" r=".5" fill="currentColor"/></svg> Deeper insight`;
+    btn.addEventListener('click', openDeeperModal);
+    document.getElementById('slideStage').appendChild(btn);
+  }
+
+  if (s.type === 'quiz'){
+    document.getElementById('quizCheckBtn').addEventListener('click', () => checkQuiz(s));
+  }
+  if (s.type === 'closing'){
+    const el = document.getElementById('finalScore');
+    if (el) el.textContent = `${quizScore} / ${quizAnswered} checkpoint questions`;
+  }
+  document.getElementById('slideStage').scrollTop = 0;
+  window.scrollTo(0,0);
+}
+
+function checkQuiz(s){
+  const sel = document.querySelector('input[name="quizOpt"]:checked');
+  const feedback = document.getElementById('quizFeedback');
+  if (!sel){
+    feedback.textContent = 'Pick an answer first.';
+    feedback.className = 'text-sm mt-4 text-amber';
+    feedback.classList.remove('hidden');
+    return;
+  }
+  const isCorrect = parseInt(sel.value,10) === s.correct;
+  feedback.textContent = (isCorrect ? 'Correct. ' : 'Not quite. ') + s.explain;
+  feedback.className = 'text-sm mt-4 ' + (isCorrect ? 'text-teal' : 'text-rust');
+  feedback.classList.remove('hidden');
+  document.querySelectorAll('input[name="quizOpt"]').forEach(i=>i.disabled=true);
+  const btn = document.getElementById('quizCheckBtn');
+  btn.disabled = true;
+  btn.classList.add('opacity-50','cursor-not-allowed');
+  quizAnswered += 1;
+  if (isCorrect) quizScore += 1;
+  updateScoreLabel();
+}
+
+function updateScoreLabel(){
+  const el = document.getElementById('quizScoreLabel');
+  el.textContent = quizAnswered ? `Score: ${quizScore}/${quizAnswered}` : '';
+}
+
+function goTo(i){
+  current = Math.max(0, Math.min(SLIDES.length - 1, i));
+  render();
+}
+
+function openDeeperModal(){
+  const s = SLIDES[current];
+  if (!s.deeper) return;
+  const html = (typeof marked !== 'undefined') ? marked.parse(s.deeper) : `<pre>${esc(s.deeper)}</pre>`;
+  document.getElementById('deeperContent').innerHTML = html;
+  document.getElementById('deeperModal').classList.remove('hidden');
+}
+
+function closeDeeperModal(){
+  document.getElementById('deeperModal').classList.add('hidden');
+}
+
+document.getElementById('deeperCloseBtn').addEventListener('click', closeDeeperModal);
+document.getElementById('deeperBackdrop').addEventListener('click', closeDeeperModal);
+document.addEventListener('keydown', (e) => {
+  if (e.key === 'Escape') closeDeeperModal();
+});
+document.getElementById('prevBtn').addEventListener('click', () => goTo(current - 1));
+document.getElementById('nextBtn').addEventListener('click', () => goTo(current + 1));
+document.addEventListener('keydown', (e) => {
+  if (e.key === 'ArrowRight') goTo(current + 1);
+  if (e.key === 'ArrowLeft') goTo(current - 1);
+});
+
+buildJumpMenu();
+render();
+</script>
+</body>
+</html>

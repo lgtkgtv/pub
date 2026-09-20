@@ -1,6 +1,6 @@
 # 🌐 Published (`pub`)
 
-Welcome to sachin's [**sachin's**](https://github.com/lgtkgtv) webspace.
+Welcome to [**sachin's**](https://github.com/lgtkgtv) webspace.
 
 This repository serves as a centralized static hosting hub deployed automatically via **GitHub Pages** at:
 👉 [**https://lgtkgtv.github.io/pub/**](https://lgtkgtv.github.io/pub/)
@@ -31,7 +31,7 @@ pub/
 │
 └── tech_tutorials/         # Interactive engineering guides & architecture writeups
     ├── README.md
-    ├── k84ai/              # Kubernetes for AI architectures & tutorials
+    ├── k8/                 # Kubernetes curriculum: Step-by-Step, Security Manual & AI Training
     └── security/           # Application & cloud security engineering guides
 ```
 
@@ -50,9 +50,11 @@ pub/
 * *Forthcoming*: Interactive visual essays, dialectical walkthroughs, and epistemological explorations.
 
 ### Tech Tutorials (`/tech_tutorials/`)
-* [**k84ai**](tech_tutorials/k84ai/) — Kubernetes for AI: Architectures and guides for scaling AI/ML workloads on Kubernetes.
-* [**security**](tech_tutorials/security/) — Practical patterns and technical tutorials for cloud and application security.
 
+| Track | Live URL | Format | Description |
+| :--- | :--- | :---: | :--- |
+| **☸️ Kubernetes Track** | [**Launch Track**](https://lgtkgtv.github.io/pub/tech_tutorials/k8/) | 3 Interactive Guides | End-to-end curriculum: 200-slide Step-by-Step Deck, Production Security Field Manual (with CIS benchmarks, live audit calculator, and Labs 0–5), and Distributed AI Training on K8s. |
+| **🔒 Security Engineering** | [**Directory**](https://github.com/lgtkgtv/pub/tree/main/tech_tutorials/security) | Architectural Guides | Practical patterns and technical tutorials for cloud and application security. |
 
 ---
 
@@ -64,4 +66,3 @@ pub/
 ---
 
 <sub>sachin godse - <a href="mailto:lgtkgtv@gmail.com">lgtkgtv@gmail.com</a></sub>
-
