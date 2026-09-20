@@ -29,8 +29,10 @@ pub/
 ├── philosophy/             # Philosophical treatises, visual essays & dialectics (Upcoming)
 │   └── README.md
 │
-└── tech_tutorials/         # Interactive engineering guides & architecture writeups (Upcoming)
-    └── README.md
+└── tech_tutorials/         # Interactive engineering guides & architecture writeups
+    ├── README.md
+    ├── k84ai/              # Kubernetes for AI architectures & tutorials
+    └── security/           # Application & cloud security engineering guides
 ```
 
 ---
@@ -48,7 +50,9 @@ pub/
 * *Forthcoming*: Interactive visual essays, dialectical walkthroughs, and epistemological explorations.
 
 ### Tech Tutorials (`/tech_tutorials/`)
-* *Forthcoming*: Technical architecture walkthroughs, deep dives, and engineering references.
+* [**k84ai**](tech_tutorials/k84ai/) — Kubernetes for AI: Architectures and guides for scaling AI/ML workloads on Kubernetes.
+* [**security**](tech_tutorials/security/) — Practical patterns and technical tutorials for cloud and application security.
+
 
 ---
 
