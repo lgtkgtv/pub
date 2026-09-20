@@ -1,6 +1,6 @@
 # 🌐 Published Showcase (`pub`)
 
-Welcome to the public web showcase repository for [**lgtkgtv**](https://github.com/lgtkgtv). 
+Welcome to the public web showcase repository for [**sachin**](https://github.com/lgtkgtv). 
 
 This repository serves as a centralized static hosting hub deployed automatically via **GitHub Pages** at:
 👉 [**https://lgtkgtv.github.io/pub/**](https://lgtkgtv.github.io/pub/)
