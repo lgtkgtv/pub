@@ -2,7 +2,7 @@
 
 **Document Version**: 1.0.0  
 **Date**: September 2026  
-**Project**: [Pantheon Art History & Visual Exhibition Engine](https://github.com/lgtkgtv/pub/tree/main/pantheon-art)  
+**Project**: [Pantheon Art History & Visual Exhibition Engine](https://github.com/lgtkgtv/pub/tree/main/art/pantheon-art)  
 **Applicable Jurisdictions**: United States (17 U.S.C.), European Union (Directive (EU) 2019/790), International (Berne Convention)
 
 ---
@@ -197,7 +197,7 @@ To transition from legacy index references to fully authorized, institution-sanc
 Pantheon operates under a formal, zero-friction notice and takedown policy:
 * **Formal Takedown Policy**: [`docs/TAKEDOWN_POLICY.md`](docs/TAKEDOWN_POLICY.md)
 * **Curator Email**: [`lgtkgtv@gmail.com`](mailto:lgtkgtv@gmail.com)
-* **GitHub Repository Issues**: [github.com/lgtkgtv/pantheon-art/issues](https://github.com/lgtkgtv/pantheon-art/issues)
+* **GitHub Repository Issues**: [github.com/lgtkgtv/pub/issues](https://github.com/lgtkgtv/pub/issues)
 
 Any inquiry or removal request regarding catalog metadata, attribution, or rights will receive prompt, courteous compliance within **24 hours** with zero dispute.
 

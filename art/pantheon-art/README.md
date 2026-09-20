@@ -1,8 +1,8 @@
-﻿# 🏛️ Pantheon: 500 Years of Western Art & Master Gallery
+# 🏛️ Pantheon: 500 Years of Western Art & Master Gallery
 
 An immersive, museum-grade visual exhibition celebrating 500 years of art history across **10 Historic Public Domain Titans** and **60 universally celebrated masterpieces**.
 
-* **🌐 Live Exhibition**: [**https://lgtkgtv.github.io/pub/pantheon-art/**](https://lgtkgtv.github.io/pub/pantheon-art/)
+* **🌐 Live Exhibition**: [**https://lgtkgtv.github.io/pub/art/pantheon-art/**](https://lgtkgtv.github.io/pub/art/pantheon-art/)
 * **📜 License**: [MIT License](LICENSE) (Personal, Non-Commercial Educational & Appreciation Study)
 * **⚖️ Rights Registry & Review**: [docs/LEGAL_REVIEW.md](docs/LEGAL_REVIEW.md)
 * **🛡️ Notice & Takedown Policy**: [docs/TAKEDOWN_POLICY.md](docs/TAKEDOWN_POLICY.md)

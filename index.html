@@ -1,33 +1,280 @@
 <!DOCTYPE html>
 <html lang="en">
 <head>
-<meta charset="UTF-8">
-<meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>lgtkgtv · Published Projects</title>
-<meta name="description" content="Published static sites for lgtkgtv's projects. Source code for each project lives in its own private repository; this repo holds only built output for GitHub Pages hosting.">
-<style>
-  :root { color-scheme: light dark; }
-  body {
-    font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
-    max-width: 640px;
-    margin: 4rem auto;
-    padding: 0 1.5rem;
-    line-height: 1.6;
-  }
-  h1 { font-size: 1.5rem; }
-  ul { padding-left: 1.25rem; }
-  li { margin: 0.5rem 0; }
-  a { color: #2563eb; text-decoration: none; }
-  a:hover { text-decoration: underline; }
-  p.note { color: #666; font-size: 0.9rem; }
-</style>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>lgtkgtv · Published Showcase</title>
+  <meta name="description" content="Published static web exhibitions, visual essays, and technical tutorials by lgtkgtv. Hosted on GitHub Pages.">
+  <style>
+    :root {
+      color-scheme: light dark;
+      --bg: #090d16;
+      --surface: #111726;
+      --surface-hover: #172033;
+      --border: #1e293b;
+      --text: #f1f5f9;
+      --text-muted: #94a3b8;
+      --accent: #38bdf8;
+      --accent-hover: #7dd3fc;
+      --gold: #f59e0b;
+    }
+
+    @media (prefers-color-scheme: light) {
+      :root {
+        --bg: #f8fafc;
+        --surface: #ffffff;
+        --surface-hover: #f1f5f9;
+        --border: #e2e8f0;
+        --text: #0f172a;
+        --text-muted: #64748b;
+        --accent: #0284c7;
+        --accent-hover: #0369a1;
+        --gold: #d97706;
+      }
+    }
+
+    * { box-sizing: border-box; margin: 0; padding: 0; }
+    
+    body {
+      font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
+      background-color: var(--bg);
+      color: var(--text);
+      line-height: 1.6;
+      padding: 3rem 1.5rem;
+      min-height: 100vh;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+    }
+
+    .container {
+      width: 100%;
+      max-width: 760px;
+    }
+
+    header {
+      margin-bottom: 2.5rem;
+      border-b: 1px solid var(--border);
+      padding-bottom: 1.5rem;
+    }
+
+    .brand {
+      display: flex;
+      align-items: center;
+      gap: 0.75rem;
+      margin-bottom: 0.5rem;
+    }
+
+    .badge {
+      font-size: 0.75rem;
+      font-weight: 600;
+      text-transform: uppercase;
+      letter-spacing: 0.05em;
+      padding: 0.2rem 0.6rem;
+      border-radius: 9999px;
+      background-color: rgba(56, 189, 248, 0.15);
+      color: var(--accent);
+      border: 1px solid rgba(56, 189, 248, 0.3);
+    }
+
+    h1 {
+      font-size: 1.875rem;
+      font-weight: 700;
+      letter-spacing: -0.025em;
+    }
+
+    .lead {
+      color: var(--text-muted);
+      font-size: 1rem;
+      margin-top: 0.5rem;
+    }
+
+    .section-title {
+      font-size: 1rem;
+      font-weight: 600;
+      text-transform: uppercase;
+      letter-spacing: 0.08em;
+      color: var(--text-muted);
+      margin: 2rem 0 1rem 0;
+      display: flex;
+      align-items: center;
+      gap: 0.5rem;
+    }
+
+    .project-grid {
+      display: flex;
+      flex-direction: column;
+      gap: 0.875rem;
+    }
+
+    .card {
+      display: block;
+      background-color: var(--surface);
+      border: 1px solid var(--border);
+      border-radius: 0.75rem;
+      padding: 1.25rem 1.5rem;
+      text-decoration: none;
+      color: inherit;
+      transition: all 0.2s ease;
+    }
+
+    .card:hover {
+      background-color: var(--surface-hover);
+      border-color: var(--accent);
+      transform: translateY(-1px);
+    }
+
+    .card-header {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      margin-bottom: 0.35rem;
+    }
+
+    .card-title {
+      font-size: 1.125rem;
+      font-weight: 600;
+      color: var(--text);
+    }
+
+    .card:hover .card-title {
+      color: var(--accent);
+    }
+
+    .card-tag {
+      font-size: 0.7rem;
+      font-family: monospace;
+      padding: 0.15rem 0.5rem;
+      border-radius: 0.25rem;
+      background-color: rgba(245, 158, 11, 0.15);
+      color: var(--gold);
+      border: 1px solid rgba(245, 158, 11, 0.3);
+    }
+
+    .card-desc {
+      font-size: 0.9rem;
+      color: var(--text-muted);
+    }
+
+    .card-muted {
+      opacity: 0.65;
+      cursor: not-allowed;
+      border-style: dashed;
+    }
+
+    .card-muted:hover {
+      transform: none;
+      background-color: var(--surface);
+      border-color: var(--border);
+    }
+
+    .card-muted .card-title {
+      color: var(--text-muted);
+    }
+
+    footer {
+      margin-top: 3.5rem;
+      padding-top: 1.5rem;
+      border-top: 1px solid var(--border);
+      font-size: 0.85rem;
+      color: var(--text-muted);
+      display: flex;
+      flex-direction: column;
+      gap: 0.75rem;
+      width: 100%;
+      max-width: 760px;
+    }
+
+    .footer-links {
+      display: flex;
+      gap: 1.25rem;
+      flex-wrap: wrap;
+    }
+
+    .footer-links a {
+      color: var(--accent);
+      text-decoration: none;
+    }
+
+    .footer-links a:hover {
+      text-decoration: underline;
+    }
+  </style>
 </head>
 <body>
-<h1>Published Projects</h1>
-<ul>
-  <li><a href="./monet-gallery/">L'Impressionnisme Vivant — 4K Impressionist Gallery</a></li>
-  <li><a href="./pantheon-art/">🏛️ Pantheon — 500 Years of Western Art &amp; Master Gallery</a></li>
-</ul>
-<p class="note">This repository hosts only built static output for GitHub Pages. Source code, build pipelines, and project history live in each project's own (private) repository.</p>
+
+  <main class="container">
+    <header>
+      <div class="brand">
+        <h1>Published Showcase</h1>
+        <span class="badge">GitHub Pages</span>
+      </div>
+      <p class="lead">Curated visual digital exhibitions, cultural heritage collections, and technical tutorials.</p>
+    </header>
+
+    <!-- Art Category -->
+    <section>
+      <h2 class="section-title">🎨 Art &amp; Culture (<code>/art/</code>)</h2>
+      <div class="project-grid">
+
+        <a class="card" href="./art/pantheon-art/">
+          <div class="card-header">
+            <span class="card-title">🏛️ Pantheon: 500 Years of Western Art</span>
+            <span class="card-tag">Master Gallery · 45.8 MP</span>
+          </div>
+          <p class="card-desc">Museum-grade visual exhibition across 10 historic titans and 60 public domain masterpieces with physical scale comparisons and 3.0× detail loupe.</p>
+        </a>
+
+        <a class="card" href="./art/monet-gallery/">
+          <div class="card-header">
+            <span class="card-title">🌸 L'Impressionnisme Vivant</span>
+            <span class="card-tag">4K Living Gallery</span>
+          </div>
+          <p class="card-desc">Curated 4K Impressionist video explorer, 1,893 high-resolution wallpapers, and ambient classical slideshow celebrating Claude Monet and the masters.</p>
+        </a>
+
+      </div>
+    </section>
+
+    <!-- Philosophy Category -->
+    <section>
+      <h2 class="section-title">🏛️ Philosophy (<code>/philosophy/</code>)</h2>
+      <div class="project-grid">
+        <div class="card card-muted">
+          <div class="card-header">
+            <span class="card-title">Philosophical Treatises &amp; Visual Essays</span>
+            <span class="card-tag" style="background-color: rgba(148, 163, 184, 0.15); color: var(--text-muted); border-color: var(--border);">Coming Soon</span>
+          </div>
+          <p class="card-desc">Interactive explorations of epistemology, mind, and dialectical frameworks.</p>
+        </div>
+      </div>
+    </section>
+
+    <!-- Tech Tutorials Category -->
+    <section>
+      <h2 class="section-title">💻 Tech Tutorials (<code>/tech_tutorials/</code>)</h2>
+      <div class="project-grid">
+        <div class="card card-muted">
+          <div class="card-header">
+            <span class="card-title">Engineering Walkthroughs &amp; Deep Dives</span>
+            <span class="card-tag" style="background-color: rgba(148, 163, 184, 0.15); color: var(--text-muted); border-color: var(--border);">Coming Soon</span>
+          </div>
+          <p class="card-desc">Modern systems architecture, software engineering tutorials, and technical retrospectives.</p>
+        </div>
+      </div>
+    </section>
+  </main>
+
+  <footer>
+    <p>This repository hosts static builds for GitHub Pages. Source code, build pipelines, and project histories live in each project's private repository.</p>
+    <div class="footer-links">
+      <a href="https://github.com/lgtkgtv/pub" target="_blank" rel="noopener noreferrer">GitHub Repository</a>
+      <span>·</span>
+      <a href="https://github.com/lgtkgtv/pub/tree/main/art">Art Directory</a>
+      <span>·</span>
+      <a href="mailto:lgtkgtv@gmail.com">Curator: lgtkgtv@gmail.com</a>
+    </div>
+  </footer>
+
 </body>
 </html>
