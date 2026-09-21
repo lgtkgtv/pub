@@ -25,8 +25,15 @@
   }
 </script>
 <style>
-  html,body{height:100%;}
-  body{font-family:'Inter',system-ui,sans-serif;}
+  :root { --app-height: 100vh; }
+  @supports (height: 100dvh) { :root { --app-height: 100dvh; } }
+  html { height: 100%; }
+  body {
+    height: 100%;
+    height: var(--app-height);
+    min-height: -webkit-fill-available;
+    font-family: 'Inter', system-ui, sans-serif;
+  }
   h1,h2,h3,.serif{font-family:'Source Serif 4',Georgia,serif;}
   code,.mono{font-family:'IBM Plex Mono',monospace;}
   ::selection{background:#E8F0EF;color:#14181F;}
@@ -51,29 +58,43 @@
   .deeper-prose td{padding:.5rem .75rem;border-bottom:1px solid #E2E5EA;color:#4B5563;vertical-align:top;}
 </style>
 </head>
-<body class="bg-white text-ink antialiased flex flex-col h-screen overflow-hidden">
+<body class="bg-white text-ink antialiased flex flex-col overflow-hidden">
 
   <!-- Top bar -->
-  <header class="border-b border-line px-4 sm:px-6 py-3 flex items-center justify-between gap-3 flex-shrink-0">
-    <div class="flex items-center gap-3 min-w-0">
+  <header class="border-b border-line px-3 sm:px-6 py-2.5 sm:py-3 flex items-center justify-between gap-2 sm:gap-3 flex-shrink-0">
+    <div class="flex items-center gap-2 sm:gap-3 min-w-0">
       <a href="./index.html" class="text-xs text-subink hover:text-ink flex items-center gap-1 mr-1 transition-colors" title="Kubernetes Tutorials Hub">
         <svg class="h-3.5 w-3.5" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M19 12H5M12 19l-7-7 7-7"/></svg>
         <span class="hidden md:inline font-medium">K8s Track</span>
       </a>
       <span class="h-2 w-2 rounded-full bg-teal flex-shrink-0"></span>
-      <span class="text-sm text-subink truncate" id="chapterLabel">Kubernetes, Step by Step</span>
+      <span class="text-xs sm:text-sm text-subink truncate font-medium" id="chapterLabel">Kubernetes, Step by Step</span>
     </div>
-    <div class="flex items-center gap-2 sm:gap-3 flex-shrink-0">
+    <div class="flex items-center gap-1.5 sm:gap-3 flex-shrink-0">
       <a href="./security-field-manual.html" class="hidden lg:inline text-xs text-subink hover:text-teal transition-colors">Security Manual &rarr;</a>
       <a href="./ai-training.html" class="hidden lg:inline text-xs text-subink hover:text-teal transition-colors">AI Training Deck &rarr;</a>
       <span class="hidden sm:inline text-xs text-subink" id="quizScoreLabel"></span>
-      <button id="copyMdBtn" onclick="copySlideMarkdown()" class="focus-ring flex items-center gap-1.5 text-xs font-medium text-teal border border-teal rounded-md px-2.5 py-1.5 hover:bg-tealsoft transition-colors">
+      <button id="copyMdBtn" onclick="copySlideMarkdown()" class="focus-ring flex items-center gap-1 text-xs font-medium text-teal border border-teal rounded-md px-2 py-1.5 hover:bg-tealsoft transition-colors" title="Copy as Markdown">
         <svg viewBox="0 0 24 24" class="h-3.5 w-3.5 flex-shrink-0" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="9" y="9" width="13" height="13" rx="2"/><path d="M5 15H4a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h9a2 2 0 0 1 2 2v1"/></svg>
-        <span class="hidden sm:inline" id="copyMdLabel">Copy as Markdown</span>
-        <span class="sm:hidden" id="copyMdLabelShort">Copy</span>
+        <span class="hidden md:inline" id="copyMdLabel">Copy as Markdown</span>
+        <span class="hidden sm:inline md:hidden" id="copyMdLabelShort">Copy</span>
       </button>
-      <select id="jumpSelect" class="text-xs border border-line rounded-md px-2 py-1.5 bg-white text-subink focus-ring max-w-[100px] sm:max-w-none"></select>
-      <span class="text-xs text-subink font-medium tabular-nums" id="slideCounter">1 / 1</span>
+      <select id="jumpSelect" class="text-xs border border-line rounded-md px-1.5 py-1.5 bg-white text-subink focus-ring max-w-[85px] sm:max-w-[140px] md:max-w-none"></select>
+      
+      <!-- Mobile Top Navigation Buttons -->
+      <div class="flex items-center gap-1 sm:hidden">
+        <button id="topPrevBtn" class="focus-ring p-1.5 text-subink border border-line rounded-md hover:bg-surface disabled:opacity-25 disabled:cursor-not-allowed" aria-label="Previous Slide">
+          <svg class="h-3.5 w-3.5" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><path d="M15 19l-7-7 7-7"/></svg>
+        </button>
+        <span class="text-[11px] font-semibold text-ink px-1 tabular-nums" id="topSlideCounter">1/200</span>
+        <button id="topNextBtn" class="focus-ring px-2.5 py-1 text-xs font-semibold text-white bg-teal rounded-md hover:bg-[#163e3c] disabled:opacity-25 disabled:cursor-not-allowed flex items-center gap-0.5 shadow-sm" aria-label="Next Slide">
+          <span>Next</span>
+          <svg class="h-3 w-3" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><path d="M9 5l7 7-7 7"/></svg>
+        </button>
+      </div>
+
+      <!-- Desktop Slide Counter -->
+      <span class="hidden sm:inline text-xs text-subink font-medium tabular-nums" id="slideCounter">1 / 1</span>
     </div>
   </header>
 
@@ -83,19 +104,20 @@
   </div>
 
   <!-- Stage -->
-  <main class="flex-1 overflow-y-auto px-4 sm:px-10 py-8 sm:py-12">
+  <main id="mainStage" class="flex-1 overflow-y-auto px-4 sm:px-10 py-5 sm:py-12">
     <div id="slideStage" class="max-w-4xl mx-auto"></div>
   </main>
 
   <!-- Bottom nav -->
-  <footer class="border-t border-line px-4 sm:px-6 py-2.5 flex items-center justify-between flex-shrink-0 text-xs text-subink">
-    <button id="prevBtn" class="focus-ring text-sm font-medium text-subink border border-line rounded-md px-4 py-1.5 hover:bg-surface transition-colors disabled:opacity-30 disabled:cursor-not-allowed">&larr; Prev</button>
-    <div class="flex items-center gap-4">
-      <span class="hidden sm:inline">Use &larr; &rarr; or the buttons</span>
+  <footer class="border-t border-line px-3 sm:px-6 py-2 sm:py-2.5 flex items-center justify-between flex-shrink-0 text-xs text-subink bg-white/95 backdrop-blur z-20" style="padding-bottom: max(0.5rem, env(safe-area-inset-bottom, 0px));">
+    <button id="prevBtn" class="focus-ring text-xs sm:text-sm font-semibold text-subink border border-line rounded-lg px-3.5 sm:px-4 py-2 sm:py-1.5 hover:bg-surface transition-colors disabled:opacity-30 disabled:cursor-not-allowed flex items-center gap-1">&larr; <span>Prev</span></button>
+    <div class="flex items-center gap-3">
+      <span class="sm:hidden text-xs font-semibold text-ink tabular-nums" id="mobileSlideCounter">1 / 200</span>
+      <span class="hidden sm:inline">Use &larr; &rarr; or swipe</span>
       <span class="hidden md:inline text-line">|</span>
       <span class="hidden md:inline text-[11px] opacity-75">sachin godse - <a href="mailto:lgtkgtv@gmail.com" class="hover:underline">lgtkgtv@gmail.com</a></span>
     </div>
-    <button id="nextBtn" class="focus-ring text-sm font-medium text-white bg-teal rounded-md px-4 py-1.5 hover:bg-[#163e3c] transition-colors disabled:opacity-30 disabled:cursor-not-allowed">Next &rarr;</button>
+    <button id="nextBtn" class="focus-ring text-xs sm:text-sm font-semibold text-white bg-teal rounded-lg px-4 sm:px-4 py-2 sm:py-1.5 hover:bg-[#163e3c] transition-colors disabled:opacity-30 disabled:cursor-not-allowed shadow-sm flex items-center gap-1"><span>Next</span> &rarr;</button>
   </footer>
 
   <!-- Deeper insight modal -->
@@ -345,10 +367,18 @@ function render(){
   const s = SLIDES[current];
   document.getElementById('slideStage').innerHTML = renderSlide(s);
   document.getElementById('slideCounter').textContent = `${current+1} / ${SLIDES.length}`;
+  const topCounter = document.getElementById('topSlideCounter');
+  if (topCounter) topCounter.textContent = `${current+1}/${SLIDES.length}`;
+  const mobCounter = document.getElementById('mobileSlideCounter');
+  if (mobCounter) mobCounter.textContent = `${current+1} / ${SLIDES.length}`;
   document.getElementById('progressBar').style.width = `${((current+1)/SLIDES.length)*100}%`;
   document.getElementById('chapterLabel').textContent = currentChapterLabel(current);
   document.getElementById('prevBtn').disabled = current === 0;
   document.getElementById('nextBtn').disabled = current === SLIDES.length - 1;
+  const topPrev = document.getElementById('topPrevBtn');
+  const topNext = document.getElementById('topNextBtn');
+  if (topPrev) topPrev.disabled = current === 0;
+  if (topNext) topNext.disabled = current === SLIDES.length - 1;
   updateJumpSelectValue(current);
   updateScoreLabel();
 
@@ -367,8 +397,6 @@ function render(){
     const el = document.getElementById('finalScore');
     if (el) el.textContent = `${quizScore} / ${quizAnswered} checkpoint questions`;
   }
-  document.getElementById('slideStage').scrollTop = 0;
-  window.scrollTo(0,0);
 }
 
 function checkQuiz(s){
@@ -401,6 +429,9 @@ function updateScoreLabel(){
 function goTo(i){
   current = Math.max(0, Math.min(SLIDES.length - 1, i));
   render();
+  const mainEl = document.getElementById('mainStage') || document.querySelector('main');
+  if (mainEl) mainEl.scrollTop = 0;
+  window.scrollTo(0, 0);
 }
 
 function openDeeperModal(){
@@ -422,10 +453,43 @@ document.addEventListener('keydown', (e) => {
 });
 document.getElementById('prevBtn').addEventListener('click', () => goTo(current - 1));
 document.getElementById('nextBtn').addEventListener('click', () => goTo(current + 1));
+const topPrev = document.getElementById('topPrevBtn');
+const topNext = document.getElementById('topNextBtn');
+if (topPrev) topPrev.addEventListener('click', () => goTo(current - 1));
+if (topNext) topNext.addEventListener('click', () => goTo(current + 1));
+
 document.addEventListener('keydown', (e) => {
   if (e.key === 'ArrowRight') goTo(current + 1);
   if (e.key === 'ArrowLeft') goTo(current - 1);
 });
+
+// Dynamic viewport height for mobile browsers (especially Safari 100vh toolbar offset)
+function setAppHeight() {
+  document.documentElement.style.setProperty('--app-height', `${window.innerHeight}px`);
+}
+window.addEventListener('resize', setAppHeight);
+window.addEventListener('orientationchange', setAppHeight);
+setAppHeight();
+
+// Mobile touch swipe gestures (Swipe left -> Next, Swipe right -> Prev)
+let touchStartX = 0;
+let touchStartY = 0;
+document.addEventListener('touchstart', (e) => {
+  touchStartX = e.changedTouches[0].screenX;
+  touchStartY = e.changedTouches[0].screenY;
+}, { passive: true });
+
+document.addEventListener('touchend', (e) => {
+  const diffX = e.changedTouches[0].screenX - touchStartX;
+  const diffY = e.changedTouches[0].screenY - touchStartY;
+  if (Math.abs(diffX) > 45 && Math.abs(diffX) > Math.abs(diffY) * 1.3) {
+    if (diffX < 0) {
+      goTo(current + 1);
+    } else {
+      goTo(current - 1);
+    }
+  }
+}, { passive: true });
 
 buildJumpMenu();
 render();

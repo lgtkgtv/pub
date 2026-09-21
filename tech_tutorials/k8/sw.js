@@ -1,6 +1,6 @@
 // Service Worker for Kubernetes Interactive Tutorials (tech_tutorials/k8)
 // Enables offline access on all visiting devices (mobile, tablet, desktop)
-const CACHE_NAME = 'k8-tutorials-v2';
+const CACHE_NAME = 'k8-tutorials-v3';
 
 const PRECACHE_ASSETS = [
   './',
