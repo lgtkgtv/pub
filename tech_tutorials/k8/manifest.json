@@ -1,0 +1,20 @@
+{
+  "name": "Kubernetes Interactive Curriculum · Step-by-Step, Security & AI Training",
+  "short_name": "K8s Track",
+  "description": "Comprehensive interactive Kubernetes tutorials: Step-by-Step deck, Production Security Field Manual, and Distributed AI Training on K8s.",
+  "start_url": "./index.html",
+  "scope": "./",
+  "display": "standalone",
+  "orientation": "any",
+  "background_color": "#090d16",
+  "theme_color": "#090d16",
+  "categories": ["education", "technology", "utilities"],
+  "icons": [
+    {
+      "src": "icons/icon.svg",
+      "sizes": "512x512",
+      "type": "image/svg+xml",
+      "purpose": "any maskable"
+    }
+  ]
+}

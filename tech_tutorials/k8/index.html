@@ -5,6 +5,9 @@
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <title>Kubernetes Interactive Curriculum · lgtkgtv</title>
   <meta name="description" content="Comprehensive interactive Kubernetes tutorials: Step-by-Step operational deck, Production Security Field Manual with live audit dashboard & hands-on labs, and Distributed AI Training on K8s.">
+  <meta name="theme-color" content="#090d16">
+  <link rel="manifest" href="./manifest.json">
+  <link rel="icon" type="image/svg+xml" href="./icons/icon.svg">
   <style>
     :root {
       color-scheme: light dark;
@@ -350,6 +353,7 @@
       <div class="brand">
         <h1>☸️ Kubernetes Track</h1>
         <span class="badge">Curriculum &amp; Production Manuals</span>
+        <span class="badge" style="background-color: rgba(16, 185, 129, 0.15); color: var(--green); border-color: rgba(16, 185, 129, 0.3);">⚡ 100% Offline Ready</span>
       </div>
       <p class="lead">
         A rigorous, hands-on learning track spanning foundational mechanics, hardened production security, and distributed GPU training for frontier AI models.
@@ -447,6 +451,9 @@
       <p>
         The <strong>Step-by-Step Deck</strong> covers architectural and declarative foundations, including pointers to verify hands-on security mechanics. The <strong>Security Field Manual</strong> provides the full implementation of <em>Labs 0 through 5</em> under Module 08. The <strong>AI Training Guide</strong> builds upon high-throughput node tuning, DRA, and scheduler mechanics introduced across both foundational guides.
       </p>
+      <p style="margin-top: 0.35rem; color: var(--green);">
+        ⚡ <strong>Offline Ready:</strong> All three guides are bundled with local runtime engines and Service Worker caching. You can view, navigate, and study them even when disconnected from the internet.
+      </p>
     </section>
   </main>
 
@@ -465,5 +472,14 @@
     <p class="attribution">sachin godse - <a href="mailto:lgtkgtv@gmail.com">lgtkgtv@gmail.com</a></p>
   </footer>
 
+  <script>
+    if ('serviceWorker' in navigator && location.protocol.startsWith('http')) {
+      window.addEventListener('load', () => {
+        navigator.serviceWorker.register('./sw.js').catch(err => {
+          console.warn('Service worker registration failed:', err);
+        });
+      });
+    }
+  </script>
 </body>
 </html>

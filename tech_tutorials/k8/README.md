@@ -24,4 +24,13 @@ Live portal: [**https://lgtkgtv.github.io/pub/tech_tutorials/k8/**](https://lgtk
 
 ---
 
+## ⚡ Offline Viewing Support
+
+All tutorials in this track are fully bundled for offline operation:
+* **Zero External Script Dependencies**: Runtime styling (`vendor/tailwindcss.js`) and Markdown parsing (`vendor/marked.min.js`) are vendored locally.
+* **Local Filesystem Compatible**: Can be opened directly via `file:///` in any browser without an internet connection or local web server.
+* **Service Worker Enabled**: Integrated PWA service worker (`sw.js`) automatically caches assets when visited online for subsequent offline reading on mobile or laptop.
+
+---
+
 <sub>sachin godse - <a href="mailto:lgtkgtv@gmail.com">lgtkgtv@gmail.com</a></sub>
